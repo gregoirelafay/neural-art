@@ -3,6 +3,10 @@ from shutil import copyfile
 import pandas as pd
 
 
+def save_csv(data, csv_path, filename):
+    data.to_csv(os.path.join(csv_path, filename), index=False)
+
+
 def get_sample(data,
                input_path,
                output_path,
@@ -10,7 +14,8 @@ def get_sample(data,
                n=1000,
                random_state=123,
                replace=False,
-               create_directory=False):
+               create_directory=False,
+               create_csv=False):
 
     datata_tmp = data.copy()
 
@@ -25,13 +30,20 @@ def get_sample(data,
         for i, j in sample.iterrows():
             old_path = os.path.join(input_path, j.path)
             new_path = os.path.join(
-                output_path, f"{os.path.basename(output_path)}-{target}-{n}",
+                output_path,
+                f"{os.path.basename(output_path)}-{target}-class_{sample[target].nunique()}-n_{n}",
                 eval(f"j.{target}"), j.title)
             os.makedirs(os.path.dirname(new_path), exist_ok=True)
             copyfile(old_path, new_path)
 
         sample["path"] = sample[[target, "image"]].apply(lambda x: "/".join(x),
                                                          axis=1)
+
+    if create_csv:
+        save_csv(
+            sample, output_path,
+            f"{os.path.basename(output_path)}-{target}-class_{sample[target].nunique()}-n_{n}.csv"
+        )
 
     return sample
 
@@ -68,7 +80,7 @@ def get_cs_train_val(csv_path, target, class_=None):
     return cs
 
 
-def get_data(csv_path, image_path, rm_duplicate=True):
+def get_data(csv_path, image_path, rm_duplicate=True, create_csv=False):
 
     cs_style = get_cs_train_val(csv_path, 'style')
     cs_genre = get_cs_train_val(csv_path, 'genre')
@@ -115,5 +127,11 @@ def get_data(csv_path, image_path, rm_duplicate=True):
     data = data.merge(cs_artist[["path", "cs-split-artist"]],
                       on="path",
                       how="outer")
+
+    if create_csv:
+        save_csv(
+            data, csv_path,
+            f"{os.path.basename(csv_path)}-movement-class_{data['movement'].nunique()}.csv"
+        )
 
     return data
