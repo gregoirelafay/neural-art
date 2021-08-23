@@ -7,11 +7,24 @@ def save_csv(data, csv_path, filename):
     data.to_csv(os.path.join(csv_path, filename), index=False)
 
 
+def save_directory(data, target, input_path, output_path, n=None):
+    for i, j in data.iterrows():
+        directory_name = f"{os.path.basename(output_path)}-{target}-class_{data[target].nunique()}"
+        if n: directory_name = f"{directory_name}-n_{n}"
+        old_path = os.path.join(input_path, j.path)
+        new_path = os.path.join(output_path, directory_name,
+                                eval(f"j.{target}"), j.title)
+        os.makedirs(os.path.dirname(new_path), exist_ok=True)
+        copyfile(old_path, new_path)
+
+    data["path"] = data[[target, "image"]].apply(lambda x: "/".join(x), axis=1)
+
+
 def get_sample(data,
                input_path,
                output_path,
                target='movement',
-               n=1000,
+               n=50,
                random_state=123,
                replace=False,
                create_directory=False,
@@ -27,17 +40,7 @@ def get_sample(data,
                                                   replace=replace)
 
     if create_directory:
-        for i, j in sample.iterrows():
-            old_path = os.path.join(input_path, j.path)
-            new_path = os.path.join(
-                output_path,
-                f"{os.path.basename(output_path)}-{target}-class_{sample[target].nunique()}-n_{n}",
-                eval(f"j.{target}"), j.title)
-            os.makedirs(os.path.dirname(new_path), exist_ok=True)
-            copyfile(old_path, new_path)
-
-        sample["path"] = sample[[target, "image"]].apply(lambda x: "/".join(x),
-                                                         axis=1)
+        save_directory(sample, target, input_path, output_path, n=n)
 
     if create_csv:
         save_csv(
@@ -80,7 +83,12 @@ def get_cs_train_val(csv_path, target, class_=None):
     return cs
 
 
-def get_data(csv_path, image_path, rm_duplicate=True, create_csv=False):
+def get_data(csv_path,
+             image_path,
+             rm_duplicate=True,
+             merge=None,
+             create_csv=False,
+             create_directory=False):
     '''
     Returns a complete dataframe containing all the information of all the files in
     the wikiart dataset, as well as the genre labels and the train/val splits
@@ -91,12 +99,22 @@ def get_data(csv_path, image_path, rm_duplicate=True, create_csv=False):
                 Path to the csv files of cs-chan
             image_path : string
                 Path to the images of the wikiart dataset
+            rm_duplicate : bool
+                Remove a duplicata in the csv files of cs-chan
+            merge : dict or None (default)
+                merge one or more movements according to the parameters of the
+                "merge" dictionary: {"old_movement_name": "new_movement_name",}.
+                If merge is None, no merger is carried out
             create_csv : bool
                 If true, export the result of the get_data() function to a csv file
+            create_directory : bool
+                Create a new image directory with a new file architecture based on
+                the merge argument. If merge is "None", create_directory will be set to False
 
         Returns:
             data : pd.DataFrame
-                Dataframe containing all the information of all the images in the wikiart dataset, as well as the genre labels and the train/val splits of cs-chan
+                Dataframe containing all the information of all the images in the wikiart dataset,
+                as well as the genre labels and the train/val splits of cs-chan
     '''
 
     cs_style = get_cs_train_val(csv_path, 'style')
@@ -144,6 +162,14 @@ def get_data(csv_path, image_path, rm_duplicate=True, create_csv=False):
     data = data.merge(cs_artist[["path", "cs-split-artist"]],
                       on="path",
                       how="outer")
+
+    if merge:
+        data["movement"] = data["movement"].apply(lambda x: merge.get(x, x))
+        data["path"] = data[["movement", "image"]].apply(lambda x: "/".join(x),
+                                                         axis=1)
+
+    if merge and create_directory:
+        print("create_directory: TO DO")
 
     if create_csv:
         save_csv(
