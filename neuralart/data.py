@@ -81,6 +81,23 @@ def get_cs_train_val(csv_path, target, class_=None):
 
 
 def get_data(csv_path, image_path, rm_duplicate=True, create_csv=False):
+    '''
+    Returns a complete dataframe containing all the information of all the files in
+    the wikiart dataset, as well as the genre labels and the train/val splits
+    of cs-chan
+
+        Parameters:
+            csv_path : string
+                Path to the csv files of cs-chan
+            image_path : string
+                Path to the images of the wikiart dataset
+            create_csv : bool
+                If true, export the result of the get_data() function to a csv file
+
+        Returns:
+            data : pd.DataFrame
+                Dataframe containing all the information of all the images in the wikiart dataset, as well as the genre labels and the train/val splits of cs-chan
+    '''
 
     cs_style = get_cs_train_val(csv_path, 'style')
     cs_genre = get_cs_train_val(csv_path, 'genre')
