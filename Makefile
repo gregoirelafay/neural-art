@@ -25,6 +25,13 @@ clean:
 	@rm -fr neural-art-*.dist-info
 	@rm -fr neural-art.egg-info
 
+# clean:
+# 	@rm -f */version.txt
+# 	@rm -f .coverage
+# 	@rm -fr */__pycache__ __pycache__
+# 	@rm -fr build dist *.dist-info *.egg-info
+# 	@rm -fr */*.pyc
+
 install:
 	@pip install . -U
 
@@ -59,15 +66,16 @@ pypi:
 # ----------------------------------
 
 PROJECT_ID=neural-art-323413
+
 BUCKET_NAME=neural-art-bucket
-REGION=europe-west1
-
-LOCAL_PATH="raw_data/wikiart/wikiart"
 BUCKET_FOLDER=data
+LOCAL_PATH="raw_data/wikiart/wikiart"
 BUCKET_FILE_NAME=$(shell basename ${LOCAL_PATH})
-
 BUCKET_TRAINING_FOLDER = 'trainings'
-REGION=europe-west1
+
+VM_INSTANCE_NAME=neuralartvm
+REGION=europe-west2-a
+
 PYTHON_VERSION=3.7
 FRAMEWORK=scikit-learn
 RUNTIME_VERSION=1.15
@@ -82,7 +90,7 @@ create_bucket:
 	@gsutil mb -l ${REGION} -p ${PROJECT_ID} gs://${BUCKET_NAME}
 
 upload_data:
-	@gsutil cp ${LOCAL_PATH} gs://${BUCKET_NAME}/${BUCKET_FOLDER}/${BUCKET_FILE_NAME}
+	@gsutil -m cp ${LOCAL_PATH} gs://${BUCKET_NAME}/${BUCKET_FOLDER}/${BUCKET_FILE_NAME}
 
 run_locally:
 	@python -m ${PACKAGE_NAME}.${FILENAME}
@@ -99,9 +107,5 @@ gcp_submit_training:
 		--scale-tier [TODO] \
     --master-machine-type n1-standard-16
 
-clean:
-	@rm -f */version.txt
-	@rm -f .coverage
-	@rm -fr */__pycache__ __pycache__
-	@rm -fr build dist *.dist-info *.egg-info
-	@rm -fr */*.pyc
+gcp_ssh_connect:
+	@gcloud compute ssh --project ${PROJECT_ID} --zone ${REGION} jupyter@${VM_INSTANCE_NAME} -- -L 8080:localhost:8080
