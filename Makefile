@@ -25,6 +25,13 @@ clean:
 	@rm -fr neural-art-*.dist-info
 	@rm -fr neural-art.egg-info
 
+# clean:
+# 	@rm -f */version.txt
+# 	@rm -f .coverage
+# 	@rm -fr */__pycache__ __pycache__
+# 	@rm -fr build dist *.dist-info *.egg-info
+# 	@rm -fr */*.pyc
+
 install:
 	@pip install . -U
 
@@ -102,10 +109,3 @@ gcp_submit_training:
 
 gcp_ssh_connect:
 	@gcloud compute ssh --project ${PROJECT_ID} --zone ${REGION} jupyter@${VM_INSTANCE_NAME} -- -L 8080:localhost:8080
-
-clean:
-	@rm -f */version.txt
-	@rm -f .coverage
-	@rm -fr */__pycache__ __pycache__
-	@rm -fr build dist *.dist-info *.egg-info
-	@rm -fr */*.pyc
