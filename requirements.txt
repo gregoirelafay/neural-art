@@ -4,6 +4,7 @@ pip
 # data science
 numpy
 pandas
+seaborn
 
 # deep learning
 tensorflow
