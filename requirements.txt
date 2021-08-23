@@ -9,6 +9,9 @@ numpy
 pandas
 scikit-learn
 
+# deep learning
+tensorflow
+
 # tests/linter
 black
 coverage
