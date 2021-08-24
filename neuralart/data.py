@@ -20,7 +20,34 @@ def save_directory(data, target, input_path, output_path, n=None):
 
 def get_dataset(data, target="movement", class_=None, n=None, strategy='drop',
                 random_state=123, output_path=None):
+    '''
+    Returns a dataframe after sampling the classes and merging / dropping the images
 
+        Parameters:
+            data : DataFrame
+                The DataFrame coming from get_data()
+            target : String | List of strings
+                The target of the dataset: it may be 'movement', 'genre', 'artist', or any
+                combinations ['genre','artist']
+            class_ : Dict | None
+                Merge or drop classes according to dict: {'class_name': 'new_class_name'}
+                will merge the class 'class_name' into the class 'new_class_name';
+                {'class_name': None} will drop the class 'class_name'
+            n : Int | None
+                Number of samples per classes. If a class has a number of images n_class < n,
+                the sampling is done according to the 'Strategy' argument. If 'n' is 'None', no
+                sampling is done.
+            strategy : string
+                The strategy to follow to sample a class having a number of images n_class < n.
+                'Drop': Drop classes with n_class < n
+                'Replace': Allow sampling of the same image more than once.
+                'Max': Take all available images of the class
+            output_path : string | None
+                Output path of the csv file. If 'output_path' is 'None', no csv is created
+
+        Returns:
+            data : pd.DataFrame
+    '''
     data_tmp = data.copy()
 
     if target == 'genre':
@@ -39,14 +66,14 @@ def get_dataset(data, target="movement", class_=None, n=None, strategy='drop',
                                               random_state=random_state,
                                               replace=True)
         if strategy=='drop':
-            class2keep = (data_tmp.groupby(by=target)[target].count() > n).to_dict()
+            class2keep = (data_tmp.groupby(by=target)[target].count() >= n).to_dict()
             data_tmp = data_tmp[data_tmp[target].apply(lambda x: class2keep.get(x,False))]
             data_tmp = data_tmp.groupby(by=target).sample(n=n,
                                               random_state=random_state,
                                               replace=False)
 
         if strategy=='max':
-            class2sample  = (data_tmp.groupby(by=target)[target].count() > n).to_dict()
+            class2sample  = (data_tmp.groupby(by=target)[target].count() >= n).to_dict()
             data2sample = data_tmp[data_tmp[target].apply(lambda x: class2sample.get(x,False))]
             data2keep = data_tmp[data_tmp[target].apply(lambda x: not class2sample.get(x,False))]
 
