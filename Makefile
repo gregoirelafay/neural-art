@@ -69,12 +69,17 @@ PROJECT_ID=neural-art-323413
 
 BUCKET_NAME=neural-art-bucket
 BUCKET_FOLDER=data
-LOCAL_PATH="raw_data/wikiart/wikiart"
-BUCKET_FILE_NAME=$(shell basename ${LOCAL_PATH})
+#LOCAL_PATH_FILE='raw_data/wikiart/*.txt'
+LOCAL_PATH_FILE='raw_data/wikiart/*.csv'
+#LOCAL_PATH_DIR='raw_data/wikiart/wikiart-movement-class_27-n_1000'
+LOCAL_PATH_DIR='raw_data/wikiart/wikiart-movement-class_27-n_100'
+#LOCAL_PATH_DIR='raw_data/wikiart/wikiart-movement-class_27'
+# BUCKET_FILE_NAME=$(shell basename ${LOCAL_PATH})
+BUCKET_FILE_NAME='wikiart'
 BUCKET_TRAINING_FOLDER = 'trainings'
 
 VM_INSTANCE_NAME=neuralartvm
-REGION=europe-west2-a
+REGION=europe-west2
 
 PYTHON_VERSION=3.7
 FRAMEWORK=scikit-learn
@@ -90,7 +95,10 @@ create_bucket:
 	@gsutil mb -l ${REGION} -p ${PROJECT_ID} gs://${BUCKET_NAME}
 
 upload_data:
-	@gsutil -m cp ${LOCAL_PATH} gs://${BUCKET_NAME}/${BUCKET_FOLDER}/${BUCKET_FILE_NAME}
+	@gsutil -m cp ${LOCAL_PATH_FILE} gs://${BUCKET_NAME}/${BUCKET_FOLDER}/${BUCKET_FILE_NAME}
+
+upload_data_dir:
+	@gsutil -m cp -r ${LOCAL_PATH_DIR} gs://${BUCKET_NAME}/${BUCKET_FOLDER}/${BUCKET_FILE_NAME}
 
 run_locally:
 	@python -m ${PACKAGE_NAME}.${FILENAME}
