@@ -72,10 +72,10 @@ BUCKET_FOLDER=data
 BUCKET_FILE_NAME='wikiart'
 BUCKET_TRAINING_FOLDER = 'trainings'
 
-LOCAL_PATH_CSV='raw_data/wikiart/*.csv
-LOCAL_PATH_CSCHAN='raw_data/wikiart/csv-chan'
-LOCAL_PATH_IMAGE_FLAT='raw_data/wikiart/dataset'
-LOCAL_PATH_IMAGE='raw_data/wikiart/wikiart'
+LOCAL_PATH_CSV='raw_data/wikiart/*.csv'
+LOCAL_PATH_CHAN='raw_data/wikiart/csv_chan'
+LOCAL_PATH_IMAGE='raw_data/wikiart/dataset'
+LOCAL_PATH_IMAGE_CHAN='raw_data/wikiart/dataset_chan'
 # BUCKET_FILE_NAME=$(shell basename ${LOCAL_PATH})
 
 VM_INSTANCE_NAME=neuralartvm
@@ -98,13 +98,13 @@ upload_csv:
 	@gsutil -m cp ${LOCAL_PATH_CSV} gs://${BUCKET_NAME}/${BUCKET_FOLDER}/${BUCKET_FILE_NAME}
 
 upload_csv_chan:
-	@gsutil -m cp -r ${LOCAL_PATH_CSCHAN} gs://${BUCKET_NAME}/${BUCKET_FOLDER}/${BUCKET_FILE_NAME}
-
-upload_image_flat:
-	@gsutil -m cp -r ${LOCAL_PATH_IMAGE_FLAT} gs://${BUCKET_NAME}/${BUCKET_FOLDER}/${BUCKET_FILE_NAME}
+	@gsutil -m cp -r ${LOCAL_PATH_CHAN} gs://${BUCKET_NAME}/${BUCKET_FOLDER}/${BUCKET_FILE_NAME}
 
 upload_image:
 	@gsutil -m cp -r ${LOCAL_PATH_IMAGE} gs://${BUCKET_NAME}/${BUCKET_FOLDER}/${BUCKET_FILE_NAME}
+
+upload_image_chan:
+	@gsutil -m cp -r ${LOCAL_PATH_IMAGE_CHAN} gs://${BUCKET_NAME}/${BUCKET_FOLDER}/${BUCKET_FILE_NAME}
 
 run_locally:
 	@python -m ${PACKAGE_NAME}.${FILENAME}
