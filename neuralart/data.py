@@ -71,10 +71,10 @@ def get_dataset(data, target="movement", class_=None, n=None, strategy='drop',
             data_tmp = pd.concat([data2keep,data2sample])
 
     if output_path:
-        file_name = f"{os.path.basename(output_path)}-{target}-genre_{keep_genre}-class_{data_tmp[target].nunique()}"
-        if class_: file_name = f"{file_name}-{class_['name']}"
-        if n: file_name = f"{file_name}-n_{n}_{strategy}"
-        save_csv(data_tmp[["file_name","movement","genre","artist"]], output_path,f"{file_name}.csv")
+        csv_name = f"{os.path.basename(output_path)}-{target}-genre_{keep_genre}-class_{data_tmp[target].nunique()}"
+        if class_: csv_name = f"{csv_name}-{class_['name']}"
+        if n: csv_name = f"{csv_name}-n_{n}_{strategy}"
+        save_csv(data_tmp[["file_name","movement","genre","artist"]], output_path,f"{csv_name}.csv")
 
     return data_tmp
 
