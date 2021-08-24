@@ -123,7 +123,7 @@ def get_cs_train_val(csv_path, target, class_=None):
 def get_data(csv_path,
              image_path,
              rm_duplicate=True,
-             create_csv=False
+             output_path=None
              ):
     '''
     Returns a complete dataframe containing all the information of all the files in
@@ -137,8 +137,9 @@ def get_data(csv_path,
                 Path to the images of the wikiart dataset
             rm_duplicate : bool
                 Remove a duplicata in the csv files of cs-chan
-            create_csv : bool
-                If true, export the result of the get_data() function to a csv file
+            output_path : String | None
+                Output path of the csv file containing the output of the get_data() function.
+                If 'output_path' is 'None', no csv is created
 
         Returns:
             data : pd.DataFrame
@@ -192,10 +193,8 @@ def get_data(csv_path,
                       on="path",
                       how="outer")
 
-    if create_csv:
-        save_csv(
-            data, csv_path,
-            f"{os.path.basename(csv_path)}-movement-class_{data['movement'].nunique()}.csv"
-        )
+    if output_path:
+        file_name = f"{os.path.basename(output_path)}-movement-class_{data['movement'].nunique()}"
+        save_csv(data, output_path,f"{file_name}.csv")
 
     return data
