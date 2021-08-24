@@ -19,6 +19,50 @@ def save_directory(data, target, input_path, output_path, n=None):
 
     data["path"] = data[[target, "image"]].apply(lambda x: "/".join(x), axis=1)
 
+def get_dataset(data, target="movement", class_=None, n=None, strategy='drop',
+                random_state=123, output_path=None):
+
+    data_tmp = data.copy()
+
+    if target == 'genre':
+        data_tmp.dropna(axis=0, subset=[target], inplace=True)
+
+
+    if class_:
+        class2drop = [key for key, val in class_.items() if not val]
+        class2keep = {key:val for key, val in class_.items() if val}
+        data_tmp = data_tmp[data_tmp[target].apply(lambda x: x  not in class2drop)]
+        data_tmp[target] = data_tmp[target].apply(lambda x: class2keep.get(x, x))
+
+    if n:
+        if strategy=='replace':
+            data_tmp = data_tmp.groupby(by=target).sample(n=n,
+                                              random_state=random_state,
+                                              replace=True)
+        if strategy=='drop':
+            class2keep = (data_tmp.groupby(by=target)[target].count() > n).to_dict()
+            data_tmp = data_tmp[data_tmp[target].apply(lambda x: class2keep.get(x,False))]
+            data_tmp = data_tmp.groupby(by=target).sample(n=n,
+                                              random_state=random_state,
+                                              replace=False)
+
+        if strategy=='max':
+            class2sample  = (data_tmp.groupby(by=target)[target].count() > n).to_dict()
+            data2sample = data_tmp[data_tmp[target].apply(lambda x: class2sample.get(x,False))]
+            data2keep = data_tmp[data_tmp[target].apply(lambda x: not class2sample.get(x,False))]
+
+            data2sample = data2sample.groupby(by=target).sample(n=n, random_state=random_state,
+                                                                replace=False)
+
+            data_tmp = pd.concat([data2keep,data2sample])
+
+    if output_path:
+        file_name = f"{os.path.basename(output_path)}-{target}-class_{data_tmp[target].nunique()}"
+        if n: file_name = f"{file_name}-n_{n}"
+        save_csv(data_tmp, output_path,f"{file_name}.csv")
+
+
+    return data_tmp
 
 def get_sample(data,
                input_path,
