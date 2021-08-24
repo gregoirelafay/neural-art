@@ -6,7 +6,6 @@ import pandas as pd
 def save_csv(data, csv_path, filename):
     data.to_csv(os.path.join(csv_path, filename), index=False)
 
-
 def save_directory(data, target, input_path, output_path, n=None):
     directory_name = f"{os.path.basename(output_path)}-{target}-class_{data[target].nunique()}"
     if n: directory_name = f"{directory_name}-n_{n}"
@@ -59,47 +58,14 @@ def get_dataset(data, target="movement", class_=None, n=None, strategy='drop',
     if output_path:
         file_name = f"{os.path.basename(output_path)}-{target}-class_{data_tmp[target].nunique()}"
         if n: file_name = f"{file_name}-n_{n}"
-        save_csv(data_tmp, output_path,f"{file_name}.csv")
-
+        save_csv(data_tmp[["path",target]], output_path,f"{file_name}.csv")
 
     return data_tmp
-
-def get_sample(data,
-               input_path,
-               output_path,
-               target='movement',
-               n=50,
-               random_state=123,
-               replace=False,
-               create_directory=False,
-               create_csv=False):
-
-    datata_tmp = data.copy()
-
-    if target == 'genre':
-        datata_tmp.dropna(axis=0, subset=[target], inplace=True)
-
-    sample = datata_tmp.groupby(by=target).sample(n=n,
-                                                  random_state=random_state,
-                                                  replace=replace)
-
-    if create_directory:
-        save_directory(sample, target, input_path, output_path, n=n)
-
-    if create_csv:
-        save_csv(
-            sample, output_path,
-            f"{os.path.basename(output_path)}-{target}-class_{sample[target].nunique()}-n_{n}.csv"
-        )
-
-    return sample
-
 
 def get_cs_class(csv_path, target):
     return pd.read_csv(os.path.join(csv_path, target + "_class.txt"),
                        header=None,
                        delim_whitespace=True)
-
 
 def get_cs_train_val(csv_path, target, class_=None):
 
@@ -130,9 +96,8 @@ def get_cs_train_val(csv_path, target, class_=None):
 def get_data(csv_path,
              image_path,
              rm_duplicate=True,
-             merge=None,
-             create_csv=False,
-             create_directory=False):
+             create_csv=False
+             ):
     '''
     Returns a complete dataframe containing all the information of all the files in
     the wikiart dataset, as well as the genre labels and the train/val splits
@@ -145,15 +110,8 @@ def get_data(csv_path,
                 Path to the images of the wikiart dataset
             rm_duplicate : bool
                 Remove a duplicata in the csv files of cs-chan
-            merge : dict or None (default)
-                merge one or more movements according to the parameters of the
-                "merge" dictionary: {"old_movement_name": "new_movement_name",}.
-                If merge is None, no merger is carried out
             create_csv : bool
                 If true, export the result of the get_data() function to a csv file
-            create_directory : bool
-                Create a new image directory with a new file architecture based on
-                the merge argument. If merge is "None", create_directory will be set to False
 
         Returns:
             data : pd.DataFrame
@@ -206,14 +164,6 @@ def get_data(csv_path,
     data = data.merge(cs_artist[["path", "cs-split-artist"]],
                       on="path",
                       how="outer")
-
-    if merge:
-        data["movement"] = data["movement"].apply(lambda x: merge.get(x, x))
-        data["path"] = data[["movement", "image"]].apply(lambda x: "/".join(x),
-                                                         axis=1)
-
-    if merge and create_directory:
-        print("create_directory: TO DO")
 
     if create_csv:
         save_csv(
