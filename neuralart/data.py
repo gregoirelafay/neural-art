@@ -43,8 +43,8 @@ def get_dataset(data, target="movement", class_=None, n=None, strategy='drop',
 
 
     if class_:
-        class2drop = [key for key, val in class_.items() if not val]
-        class2keep = {key:val for key, val in class_.items() if val}
+        class2drop = [key for key, val in class_['dico'].items() if not val]
+        class2keep = {key:val for key, val in class_['dico'].items() if val}
         data_tmp = data_tmp[data_tmp[target].apply(lambda x: x  not in class2drop)]
         data_tmp[target] = data_tmp[target].apply(lambda x: class2keep.get(x, x))
 
@@ -72,7 +72,7 @@ def get_dataset(data, target="movement", class_=None, n=None, strategy='drop',
 
     if output_path:
         file_name = f"{os.path.basename(output_path)}-{target}-genre_{keep_genre}-class_{data_tmp[target].nunique()}"
-        #if class_: file_name = f"{file_name}-{eval('')}"
+        if class_: file_name = f"{file_name}-{class_['name']}"
         if n: file_name = f"{file_name}-n_{n}_{strategy}"
         save_csv(data_tmp[["file_name","movement","genre","artist"]], output_path,f"{file_name}.csv")
 
@@ -111,7 +111,8 @@ def get_cs_train_val(csv_path, target, class_=None):
 
 def get_data(csv_path,
              image_path,
-             rm_duplicate=True,
+             rm_csv_duplicate=True,
+             rm_image_duplicate=True,
              output_path=None
              ):
     '''
@@ -142,7 +143,7 @@ def get_data(csv_path,
 
     # There is one duplicata inside genre_train.csv / genre_test.csv
     # One image labelled with two genres
-    if rm_duplicate:
+    if rm_csv_duplicate:
         if not cs_genre[cs_genre["path"].duplicated(keep='first')].empty:
             cs_genre.drop(
                 cs_genre[cs_genre["path"].duplicated(keep='first')].index,
@@ -181,6 +182,9 @@ def get_data(csv_path,
     data = data.merge(cs_artist[["path", "cs-split-artist"]],
                       on="path",
                       how="outer")
+
+    if rm_image_duplicate:
+        data.drop(data[data.file_name.duplicated(keep=False)].index,inplace=True)
 
     if output_path:
         file_name = f"{os.path.basename(output_path)}-movement-class_{data['movement'].nunique()}"
