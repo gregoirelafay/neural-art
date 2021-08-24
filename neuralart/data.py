@@ -2,10 +2,6 @@ import os
 from shutil import copyfile
 import pandas as pd
 
-
-def save_csv(data, csv_path, filename):
-    data.to_csv(os.path.join(csv_path, filename), index=False)
-
 def get_dataset(data, target="movement", class_=None, n=None, strategy='drop',
                 random_state=123, output_path=None, keep_genre=False):
     '''
@@ -13,7 +9,7 @@ def get_dataset(data, target="movement", class_=None, n=None, strategy='drop',
 
         Parameters:
             data : DataFrame
-                The DataFrame coming from get_data()
+                A DataFrame coming from get_data()
             target : String
                 The target of the dataset: it may be 'movement', 'genre' or 'artist'
             class_ : Dict | None
@@ -38,13 +34,14 @@ def get_dataset(data, target="movement", class_=None, n=None, strategy='drop',
     data_tmp = data.copy()
 
     if target == 'genre' or keep_genre:
-        data_tmp.dropna(axis=0, subset=[target], inplace=True)
+        data_tmp.dropna(axis=0, subset=['genre'], inplace=True)
         keep_genre = True
 
 
     if class_:
-        class2drop = [key for key, val in class_['dico'].items() if not val]
-        class2keep = {key:val for key, val in class_['dico'].items() if val}
+        class2drop = [key for key, val in class_['merging'].items() if not val]
+        class2keep = {key: val for key,
+                      val in class_['merging'].items() if val}
         data_tmp = data_tmp[data_tmp[target].apply(lambda x: x  not in class2drop)]
         data_tmp[target] = data_tmp[target].apply(lambda x: class2keep.get(x, x))
 
@@ -77,36 +74,6 @@ def get_dataset(data, target="movement", class_=None, n=None, strategy='drop',
         save_csv(data_tmp[["file_name","movement","genre","artist"]], output_path,f"{csv_name}.csv")
 
     return data_tmp
-
-def get_cs_class(csv_path, target):
-    return pd.read_csv(os.path.join(csv_path, target + "_class.txt"),
-                       header=None,
-                       delim_whitespace=True)
-
-def get_cs_train_val(csv_path, target, class_=None):
-
-    if not isinstance(class_, pd.DataFrame):
-        class_ = get_cs_class(csv_path, target)
-
-    cs_train = pd.read_csv(os.path.join(csv_path, target + "_train.csv"),
-                           header=None)
-    cs_train["split"] = "train"
-
-    cs_val = pd.read_csv(os.path.join(csv_path, target + "_val.csv"),
-                         header=None)
-    cs_val["split"] = "val"
-
-    cs = pd.concat([cs_train, cs_val], ignore_index=True)
-    cs.columns = ["path", target + "_id", "cs-split-" + target]
-
-    cs[target] = cs[target + "_id"].apply(lambda x: class_.loc[x][1])
-    cs["style-from-path"] = cs["path"].apply(lambda x: x.split('/')[0])
-    cs["artist-from-path"] = cs["path"].apply(
-        lambda x: x.split('/')[1].split('_')[0])
-    cs["title-from-path"] = cs["path"].apply(
-        lambda x: x.split('/')[1].split('_')[1])
-
-    return cs
 
 
 def get_data(csv_path,
@@ -161,33 +128,95 @@ def get_data(csv_path,
         files = os.listdir(os.path.join(image_path, g))
         movement.extend([g] * len(files))
         file_name.extend(files)
-        artist.extend(list(map(lambda x: x.split('_')[0], files)))
-        title.extend(list(map(lambda x: x.split('_')[1], files)))
-        path.extend(list(map(lambda x: g + '/' + x, files)))
+        artist.extend([x.split('_')[0] for x in files])
+        title.extend([x.split('_')[1] for x in files])
+        path.extend([g + '/' + x for x in files])
+        #artist.extend(list(map(lambda x: x.split('_')[0], files)))
+        #title.extend(list(map(lambda x: x.split('_')[1], files)))
+        #path.extend(list(map(lambda x: g + '/' + x, files)))
 
     data = pd.DataFrame({
         "path": path,
         "movement": movement,
         "artist": artist,
         "title": title,
-        "file_name": file_name
+        "cs_file_name": file_name
     })
 
-    data = data.merge(cs_genre[["path", "genre", "cs-split-genre"]],
+    data['movement'] = data['movement'].str.lower()
+
+    data['file_name'] = (data['movement'].str.replace(
+        "_", "-") + '_' + data['cs_file_name']).str.lower()
+
+    data = data.merge(cs_genre[["path", "genre", "cs_split_genre"]],
                       on="path",
                       how="outer")
-    data = data.merge(cs_style[["path", "cs-split-style"]],
+    data = data.merge(cs_style[["path", "cs_split_style"]],
                       on="path",
                       how="outer")
-    data = data.merge(cs_artist[["path", "cs-split-artist"]],
+    data = data.merge(cs_artist[["path", "cs_split_artist"]],
                       on="path",
                       how="outer")
 
+    data.rename(columns={"path": "cs_path"},inplace=True)
+
     if rm_image_duplicate:
-        data.drop(data[data.file_name.duplicated(keep=False)].index,inplace=True)
+        data.drop(data[data['cs_file_name'].duplicated(keep=False)].index,inplace=True)
 
     if output_path:
         file_name = f"{os.path.basename(output_path)}-movement-class_{data['movement'].nunique()}"
         save_csv(data, output_path,f"{file_name}.csv")
 
     return data
+
+
+def create_dataset_directory(data, chan_image_path, dataset_dir_path, dataset_dir_name):
+    j = 0
+    for i in data.iterrows():
+        os.makedirs(os.path.join(dataset_dir_path,
+                    dataset_dir_name), exist_ok=True)
+        copyfile(os.path.join(chan_image_path, i[1]['cs_path']), os.path.join(
+            dataset_dir_path, dataset_dir_name, i[1]['file_name']))
+        j +=1
+
+        if not j % 2500:
+            print(f"{j} images copied")
+
+    files = os.listdir(os.path.join(dataset_dir_path, dataset_dir_name))
+
+    print(f"Done: {j} image(s) copied, {len(files)} image(s) in the folder")
+
+def get_cs_class(csv_path, target):
+    return pd.read_csv(os.path.join(csv_path, target + "_class.txt"),
+                       header=None,
+                       delim_whitespace=True)
+
+
+def get_cs_train_val(csv_path, target, class_=None):
+
+    if not isinstance(class_, pd.DataFrame):
+        class_ = get_cs_class(csv_path, target)
+
+    cs_train = pd.read_csv(os.path.join(csv_path, target + "_train.csv"),
+                           header=None)
+    cs_train["split"] = "train"
+
+    cs_val = pd.read_csv(os.path.join(csv_path, target + "_val.csv"),
+                         header=None)
+    cs_val["split"] = "val"
+
+    cs = pd.concat([cs_train, cs_val], ignore_index=True)
+    cs.columns = ["path", target + "_id", "cs_split_" + target]
+
+    cs[target] = cs[target + "_id"].apply(lambda x: class_.loc[x][1])
+    cs["style_from_path"] = cs["path"].apply(lambda x: x.split('/')[0])
+    cs["artist_from_path"] = cs["path"].apply(
+        lambda x: x.split('/')[1].split('_')[0])
+    cs["title_from_path"] = cs["path"].apply(
+        lambda x: x.split('/')[1].split('_')[1])
+
+    return cs
+
+
+def save_csv(data, csv_path, filename):
+    data.to_csv(os.path.join(csv_path, filename), index=False)
