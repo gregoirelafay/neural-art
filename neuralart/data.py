@@ -6,29 +6,16 @@ import pandas as pd
 def save_csv(data, csv_path, filename):
     data.to_csv(os.path.join(csv_path, filename), index=False)
 
-def save_directory(data, target, input_path, output_path, n=None):
-    directory_name = f"{os.path.basename(output_path)}-{target}-class_{data[target].nunique()}"
-    if n: directory_name = f"{directory_name}-n_{n}"
-    for i, j in data.iterrows():
-        old_path = os.path.join(input_path, j.path)
-        new_path = os.path.join(output_path, directory_name,
-                                eval(f"j.{target}"), j.title)
-        os.makedirs(os.path.dirname(new_path), exist_ok=True)
-        copyfile(old_path, new_path)
-
-    data["path"] = data[[target, "image"]].apply(lambda x: "/".join(x), axis=1)
-
 def get_dataset(data, target="movement", class_=None, n=None, strategy='drop',
-                random_state=123, output_path=None):
+                random_state=123, output_path=None, keep_genre=False):
     '''
     Returns a dataframe after sampling the classes and merging / dropping the images
 
         Parameters:
             data : DataFrame
                 The DataFrame coming from get_data()
-            target : String | List of strings
-                The target of the dataset: it may be 'movement', 'genre', 'artist', or any
-                combinations ['genre','artist']
+            target : String
+                The target of the dataset: it may be 'movement', 'genre' or 'artist'
             class_ : Dict | None
                 Merge or drop classes according to dict: {'class_name': 'new_class_name'}
                 will merge the class 'class_name' into the class 'new_class_name';
@@ -50,8 +37,9 @@ def get_dataset(data, target="movement", class_=None, n=None, strategy='drop',
     '''
     data_tmp = data.copy()
 
-    if target == 'genre':
+    if target == 'genre' or keep_genre:
         data_tmp.dropna(axis=0, subset=[target], inplace=True)
+        keep_genre = True
 
 
     if class_:
@@ -83,9 +71,10 @@ def get_dataset(data, target="movement", class_=None, n=None, strategy='drop',
             data_tmp = pd.concat([data2keep,data2sample])
 
     if output_path:
-        file_name = f"{os.path.basename(output_path)}-{target}-class_{data_tmp[target].nunique()}"
-        if n: file_name = f"{file_name}-n_{n}"
-        save_csv(data_tmp[["path",target]], output_path,f"{file_name}.csv")
+        file_name = f"{os.path.basename(output_path)}-{target}-genre_{keep_genre}-class_{data_tmp[target].nunique()}"
+        #if class_: file_name = f"{file_name}-{eval('')}"
+        if n: file_name = f"{file_name}-n_{n}_{strategy}"
+        save_csv(data_tmp[["file_name","movement","genre","artist"]], output_path,f"{file_name}.csv")
 
     return data_tmp
 
@@ -162,7 +151,7 @@ def get_data(csv_path,
     movement_list = [i for i in os.listdir(image_path) if i != '.DS_Store']
 
     movement = []
-    image = []
+    file_name = []
     artist = []
     title = []
     path = []
@@ -170,7 +159,7 @@ def get_data(csv_path,
     for g in movement_list:
         files = os.listdir(os.path.join(image_path, g))
         movement.extend([g] * len(files))
-        image.extend(files)
+        file_name.extend(files)
         artist.extend(list(map(lambda x: x.split('_')[0], files)))
         title.extend(list(map(lambda x: x.split('_')[1], files)))
         path.extend(list(map(lambda x: g + '/' + x, files)))
@@ -180,7 +169,7 @@ def get_data(csv_path,
         "movement": movement,
         "artist": artist,
         "title": title,
-        "image": image
+        "file_name": file_name
     })
 
     data = data.merge(cs_genre[["path", "genre", "cs-split-genre"]],
