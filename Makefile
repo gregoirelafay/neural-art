@@ -11,9 +11,10 @@ black:
 	@black scripts/* neural-art/*.py
 
 test:
-	@coverage run -m pytest tests/*.py
-	@coverage report -m --omit="${VIRTUAL_ENV}/lib/python*"
-
+	@coverage run --source=neuralart -m pytest -v --color=yes tests/*.py
+	@coverage report -m --omit="*__init__.py,*legacy.py"
+#"${VIRTUAL_ENV}/lib/python*"
+# Add -s to display prints
 ftest:
 	@Write me
 
@@ -51,7 +52,7 @@ count_lines:
 # ----------------------------------
 #      UPLOAD PACKAGE TO PYPI
 # ----------------------------------
-PYPI_USERNAME=<AUTHOR>
+PYPI_USERNAME=NeuralArtTeam
 build:
 	@python setup.py sdist bdist_wheel
 
