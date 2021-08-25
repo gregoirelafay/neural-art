@@ -8,6 +8,7 @@ seaborn
 
 # deep learning
 tensorflow
+scikit-learn
 
 # tests/linter
 
