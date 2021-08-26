@@ -8,3 +8,4 @@ raw_data/
 .env
 .python-version
 .vscode
+notebooks/logs/
