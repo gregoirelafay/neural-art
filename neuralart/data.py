@@ -3,7 +3,7 @@ from shutil import copyfile
 import pandas as pd
 
 def get_dataset(data, target="movement", class_=None, n=None, strategy='drop',
-                random_state=123, output_path=None, keep_genre=False):
+                random_state=123, output_path=None, keep_genre=False, input_image=None, output_image=None):
     '''
     Returns a dataframe after sampling the classes and merging / dropping the images
 
@@ -170,17 +170,30 @@ def get_data(csv_path,
     return data
 
 
-def create_dataset_directory(data, chan_image_path, dataset_dir_path, dataset_dir_name):
+def create_dataset_directory(data, chan_image_path, dataset_dir_path, dataset_dir_name, flat=True):
     j = 0
-    for i in data.iterrows():
-        os.makedirs(os.path.join(dataset_dir_path,
-                    dataset_dir_name), exist_ok=True)
-        copyfile(os.path.join(chan_image_path, i[1]['cs_path']), os.path.join(
-            dataset_dir_path, dataset_dir_name, i[1]['file_name']))
-        j +=1
+    if flat:
+        for i in data.iterrows():
+            os.makedirs(os.path.join(dataset_dir_path,
+                        dataset_dir_name), exist_ok=True)
+            copyfile(os.path.join(chan_image_path, i[1]['cs_path']), os.path.join(
+                dataset_dir_path, dataset_dir_name, i[1]['file_name']))
+            j +=1
 
-        if not j % 2500:
-            print(f"{j} images copied")
+            if not j % 2500:
+                print(f"{j} images copied")
+
+    else:
+        for i in data.iterrows():
+            os.makedirs(os.path.join(dataset_dir_path, dataset_dir_name,
+                                     i[1]['movement']),
+                        exist_ok=True)
+            copyfile(os.path.join(chan_image_path, i[1]['cs_path']), os.path.join(
+                dataset_dir_path, dataset_dir_name, i[1]['movement'], i[1]['file_name']))
+            j +=1
+
+            if not j % 2500:
+                print(f"{j} images copied")
 
     files = os.listdir(os.path.join(dataset_dir_path, dataset_dir_name))
 
