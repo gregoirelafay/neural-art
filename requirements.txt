@@ -8,6 +8,7 @@ seaborn
 
 # deep learning
 tensorflow
+scikit-learn
 
 # tests/linter
 
@@ -20,3 +21,4 @@ s3fs
 # utilities
 joblib
 memoized-property
+coverage

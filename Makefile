@@ -11,9 +11,10 @@ black:
 	@black scripts/* neural-art/*.py
 
 test:
-	@coverage run -m pytest tests/*.py
-	@coverage report -m --omit="${VIRTUAL_ENV}/lib/python*"
-
+	@coverage run --source=neuralart -m pytest -v --color=yes tests/*.py
+	@coverage report -m --omit="*__init__.py,*legacy.py"
+#"${VIRTUAL_ENV}/lib/python*"
+# Add -s to display prints
 ftest:
 	@Write me
 
@@ -51,7 +52,7 @@ count_lines:
 # ----------------------------------
 #      UPLOAD PACKAGE TO PYPI
 # ----------------------------------
-PYPI_USERNAME=<AUTHOR>
+PYPI_USERNAME=NeuralArtTeam
 build:
 	@python setup.py sdist bdist_wheel
 
@@ -74,7 +75,12 @@ BUCKET_TRAINING_FOLDER = 'trainings'
 
 LOCAL_PATH_CSV='raw_data/wikiart/*.csv'
 LOCAL_PATH_CHAN='raw_data/wikiart/csv_chan'
-LOCAL_PATH_IMAGE='raw_data/wikiart/dataset'
+
+# LOCAL_PATH_IMAGE='raw_data/wikiart/dataset'
+# LOCAL_PATH_IMAGE='raw_data/wikiart/wikiart-movement-genre_True-class_8-merge_mov-1-n_200_max'
+# LOCAL_PATH_IMAGE='raw_data/wikiart/wikiart-movement-genre_True-class_8-merge_mov-1'
+LOCAL_PATH_IMAGE='raw_data/wikiart/wikiart-movement-genre_False-class_8-merge_mov-1'
+
 LOCAL_PATH_IMAGE_CHAN='raw_data/wikiart/dataset_chan'
 # BUCKET_FILE_NAME=$(shell basename ${LOCAL_PATH})
 
