@@ -1,12 +1,14 @@
 import tensorflow as tf
-from tensorflow.keras import Input, Model, layers, models, applications
-from tensorflow.keras.layers.experimental.preprocessing import RandomFlip, RandomRotation, RandomZoom, optimizers
+from tensorflow.keras import Input, Model, layers, models, applications, optimizers
+from tensorflow.keras.layers.experimental.preprocessing import RandomFlip, RandomRotation, RandomZoom, Rescaling
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
+import numpy as np
 import pandas as pd
 import os
 import datetime
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 class Trainer():
     def __init__(self, experiment_name='test_trainer'):
@@ -143,13 +145,13 @@ class Trainer():
         ds = ds.prefetch(buffer_size=self.AUTOTUNE)
         return ds
 
-    def configure_performance_train_ds_from_directory(self, ds):
+    def conf_perf_train_ds_from_directory(self, ds):
         ds = ds.cache()
         ds = ds.shuffle(buffer_size=self.buffer_size)
         ds = ds.prefetch(buffer_size=self.AUTOTUNE)
         return ds
 
-    def configure_performance_val_test_ds_from_directory(self, ds):
+    def conf_perf_val_test_ds_from_directory(self, ds):
         ds = ds.cache()
         ds = ds.prefetch(buffer_size=self.AUTOTUNE)
         return ds
@@ -164,37 +166,58 @@ class Trainer():
         assert self.model_name in {
             "VGG16", "ResNet50", "custom"}, "Choose a model among the following ones: 'VGG16', 'ResNet50', 'custom'"
 
-        if self.model_name == "VGG16":
-            layer_model = self.get_vgg16_model()
-
-        if self.model_name == "ResNet50":
-            layer_model = self.get_resnet50_model()
+        data_augmentation_layers = self.get_data_augmentation_layers()
 
         if self.model_name in {"ResNet50", "VGG16"}:
+            if self.model_name == "VGG16":
+                layer_model = self.get_vgg16_model()
+
+            if self.model_name == "ResNet50":
+                layer_model = self.get_resnet50_model()
+
             layer_model.trainable = False
             for layer in layer_model.layers[-self.trainable_layers:]:
                 layer.trainable = True
 
-        if self.model_name == 'custom':
-            pass
+            inputs = Input(shape=(self.img_height, self.img_width, 3))
+            # Are not applied to validation and test dataset (made inactive, tensorflow handle it)
+            x = data_augmentation_layers(inputs)
+            if self.model_name == "VGG16":
+                x = applications.vgg16.preprocess_input(x)  # Does the rescaling
+            if self.model_name == "ResNet50":
+                x = applications.resnet50.preprocess_input(x)  # Does the rescaling
+            x = layer_model(x)
+            x = layers.GlobalAveragePooling2D()(x)
+            x = layers.Dropout(0.5)(x)
 
-        data_augmentation_layers = self.get_data_augmentation_layers()
-
-        inputs = Input(shape=(self.img_height, self.img_width, 3))
-
-        x = data_augmentation_layers(inputs)  # Are not applied to validation and test dataset (made inactive, tensorflow handle it)
-        if self.model_name == "VGG16":
-            x = applications.vgg16.preprocess_input(x)  # Does the rescaling
-        if self.model_name == "ResNet50":
-            x = applications.resnet50.preprocess_input(x)  # Does the rescaling
-        x = layer_model(x)
-        x = layers.GlobalAveragePooling2D()(x)
-        x = layers.Dropout(0.5)(x)
-
-        outputs = layers.Dense(self.num_classes, activation='softmax',
+            outputs = layers.Dense(self.num_classes, activation='softmax',
                             name='classification_layer')(x)
 
-        self.model = Model(inputs, outputs)
+            self.model = Model(inputs, outputs)
+
+        if self.model_name == 'custom':
+            self.model = models.Sequential([
+                layers.InputLayer(input_shape=(
+                    self.img_height, self.img_width, 3)),
+                Rescaling(1./255),
+                data_augmentation_layers,
+                layers.Conv2D(8, 3, padding='same', activation='relu'),
+                layers.MaxPooling2D((2, 2)),
+                layers.Conv2D(16, 3, padding='same', activation='relu'),
+                layers.MaxPooling2D((2, 2)),
+                layers.Conv2D(32, 3, padding='same', activation='relu'),
+                layers.MaxPooling2D((2, 2)),
+                layers.Conv2D(64, 3, padding='same', activation='relu'),
+                layers.MaxPooling2D((2, 2)),
+                layers.Dropout(0.3),
+                layers.Conv2D(128, 3, padding='same', activation='relu'),
+                layers.Flatten(),
+                layers.Dropout(0.4),
+                layers.Dense(64, activation='relu'),
+                layers.Dropout(0.5),
+                layers.Dense(self.num_classes, activation='softmax')
+            ])
+
 
         self.model.compile(optimizer=optimizers.Adamax(learning_rate=self.learning_rate),
                            loss='categorical_crossentropy',
@@ -231,7 +254,7 @@ class Trainer():
 
         self.history = self.model.fit(
             self.train_ds,
-            epochs=self.EPOCHS,
+            epochs=self.epochs,
             validation_data=self.val_ds,
             callbacks=[es, rlrp],
             use_multiprocessing=True)
@@ -255,7 +278,7 @@ class Trainer():
 
         self.model.save(os.path.join(self.model_folder_path, self.model_filename))
 
-    def evaluate_model(self):
+    def evaluate(self):
         assert self.test_ds, "Run the create_dataset_from_directory() or create_dataset_from_csv() methods first"
         assert self.model, "Run the build_model() method first"
         assert self.history, "Run the run() method first"
@@ -264,7 +287,7 @@ class Trainer():
 
         return self.results
 
-    def history_visualization(self):
+    def plot_history(self):
         assert self.test_ds, "Run the create_dataset_from_directory() or create_dataset_from_csv() methods first"
         assert self.model, "Run the build_model() method first"
         assert self.history, "Run the run() method first"
@@ -285,3 +308,73 @@ class Trainer():
         ax[1].plot(epochs_range, val_loss, label='Validation Loss')
         ax[1].legend(loc='upper right')
         ax[1].set_title('Training and Validation Loss')
+
+    def plot_train_batch(self):
+        assert self.train_ds, "Run the create_dataset_from_directory() or create_dataset_from_csv() methods first"
+        image_batch, label_batch = next(iter(self.train_ds))
+
+        plt.figure(figsize=(15, 15))
+        for i in range(9):
+            ax = plt.subplot(3, 3, i + 1)
+            plt.imshow(image_batch[i].numpy().astype("uint8"))
+            label = label_batch[i]
+            plt.title(self.class_names[label.numpy() == 1][0])
+            plt.axis("off")
+
+    def plot_val_batch(self,make_prediction=False):
+        assert self.val_ds, "Run the create_dataset_from_directory() or create_dataset_from_csv() methods first"
+
+        image_batch, label_batch = next(iter(self.val_ds))
+
+        if make_prediction:
+            assert self.model, "Run the build_model() method first"
+            assert self.history, "Run the run() method first"
+            pred_batch = self.model.predict(image_batch.numpy())
+
+        plt.figure(figsize=(15, 15))
+        for i in range(9):
+            ax = plt.subplot(3, 3, i + 1)
+            plt.imshow(image_batch[i].numpy().astype("uint8"))
+            label = label_batch[i]
+            plt.title(f"Truth: {self.class_names[label.numpy()==1][0]}")
+            if make_prediction:
+                plt.xlabel(
+                    f"Pred: {' '.join([f'{self.class_names[a]}: {pred_batch[i][a]:0.2f}' for a in np.argsort(pred_batch[i])[::-1] if pred_batch[i][a] > 0.2])}")
+                plt.xticks([])
+                ax.set_xticks([])
+                plt.yticks([])
+                ax.set_yticks([])
+            else:
+                plt.axis("off")
+
+    def plot_confusion_matrix(self):
+        assert self.val_ds, "Run the create_dataset_from_directory() or create_dataset_from_csv() methods first"
+        assert self.model, "Run the build_model() method first"
+        assert self.history, "Run the run() method first"
+
+        y_pred = []  # store predicted labels
+        y_true = []  # store true labels
+
+        # iterate over the dataset
+        for image_batch, label_batch in self.val_ds:
+            # append true labels
+            y_true.append(np.argmax(label_batch, axis=1))
+            # compute predictions
+            preds = self.model.predict(image_batch)
+            # append predicted labels
+            y_pred.append(np.argmax(preds, axis=- 1))
+
+        # convert the true and predicted labels into tensors
+        correct_labels = tf.concat([item for item in y_true], axis=0)
+        predicted_labels = tf.concat([item for item in y_pred], axis=0)
+
+        conf_mat = tf.math.confusion_matrix(correct_labels, predicted_labels)
+        conf_mat = conf_mat.numpy() / conf_mat.numpy().sum(axis=1)[:, np.newaxis]
+
+        fig, ax = plt.subplots(1, 1, figsize=(15, 15))
+        sns.heatmap(conf_mat, annot=True, cmap="Blues", ax=ax, cbar=False,
+                    xticklabels=self.class_names, yticklabels=self.class_names, fmt='.2%')
+        ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=12)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontsize=12)
+        ax.set_ylabel("Labels")
+        ax.set_xlabel("Prediction")
