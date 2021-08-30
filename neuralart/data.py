@@ -1,6 +1,43 @@
 import os
 from shutil import copyfile
 import pandas as pd
+import splitfolders
+
+
+def get_train_val_test_directory(output_dir, input_dir=None,
+                                 csv_path=None,
+                                 save_csv=False,
+                                 train_ratio=0.8,
+                                 val_ratio=0.1,
+                                 test_ratio=0.1,
+                                 seed=1337):
+
+    if input_dir:
+        splitfolders.ratio(input_dir, output_dir,
+                        seed=seed,
+                        ratio=(train_ratio, val_ratio, test_ratio),
+                        group_prefix=None)
+
+
+    if csv_path:
+        split_list = [i for i in os.listdir(output_dir) if i != '.DS_Store']
+        assert set(split_list) == {'train', 'val', 'test'}
+
+        data = pd.read_csv(csv_path)
+        data["split"] = None
+
+        for split in split_list:
+            movement_list = [i for i in os.listdir(os.path.join(output_dir,split)) if i != '.DS_Store']
+            for movement in movement_list:
+                image_list = [i for i in os.listdir(os.path.join(output_dir,split,movement)) if i != '.DS_Store']
+                for image in image_list:
+                    data.loc[data["file_name"]==image,"split"] = split
+
+        if save_csv:
+            data.to_csv(os.path.splitext(csv_path)[0] + '_split.csv', index=False)
+
+        return data
+
 
 def get_dataset(data, target="movement", class_=None, n=None, strategy='drop',
                 random_state=123, output_path=None, keep_genre=False, input_image=None, output_image=None):

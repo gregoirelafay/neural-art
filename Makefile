@@ -79,7 +79,12 @@ LOCAL_PATH_CHAN='raw_data/wikiart/csv_chan'
 # LOCAL_PATH_IMAGE='raw_data/wikiart/dataset'
 # LOCAL_PATH_IMAGE='raw_data/wikiart/wikiart-movement-genre_True-class_8-merge_mov-1-n_200_max'
 # LOCAL_PATH_IMAGE='raw_data/wikiart/wikiart-movement-genre_True-class_8-merge_mov-1'
-LOCAL_PATH_IMAGE='raw_data/wikiart/wikiart-movement-genre_False-class_8-merge_mov-1'
+# LOCAL_PATH_IMAGE='raw_data/wikiart/wikiart-movement-genre_False-class_8-merge_mov-1'
+# LOCAL_PATH_IMAGE='raw_data/wikiart/wikiart-movement-genre_True-class_8-merge_mov-1-n_1440_max'
+
+# LOCAL_PATH_IMAGE='raw_data/wikiart/train_val_test_True_200'
+LOCAL_PATH_IMAGE='raw_data/wikiart/train_val_test_True_1440'
+# LOCAL_PATH_IMAGE='raw_data/wikiart/train_val_test_True_all'
 
 LOCAL_PATH_IMAGE_CHAN='raw_data/wikiart/dataset_chan'
 # BUCKET_FILE_NAME=$(shell basename ${LOCAL_PATH})

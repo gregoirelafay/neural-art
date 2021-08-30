@@ -22,3 +22,5 @@ s3fs
 joblib
 memoized-property
 coverage
+split-folders
+opencv-python
