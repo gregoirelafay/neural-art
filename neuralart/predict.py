@@ -14,6 +14,7 @@ class Predict():
 
 
     def decode_image(self, img_height, img_width):
+        assert self.image, "Please provide an image to the Predict() class"
         self.img_height = img_height
         self.img_width = img_width
 
@@ -26,5 +27,5 @@ class Predict():
         self.model = models.load_model(model_path)
 
     def get_prediction(self):
-        assert self.model, "Please load a model"
+        assert self.model, "Please load a model using the load_model() method"
         return self.model.predict(tf.expand_dims(self.decoded_image, axis=0))
