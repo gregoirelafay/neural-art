@@ -1,21 +1,26 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from numpy.lib.polynomial import roots
 import tensorflow as tf
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
 import cv2
 
-import fourier
+import neuralart.fourier as fourier
 
 MAIN_PATH =  "../raw_data/wikiart/" # Path to the directory which contains CSVs and the folder 'dataset'
-IMAGES = "dataset"
-CSV_NAME = "wikiart-movement-genre_True-class_8-merge_mov-1-n_1000_max.csv" # Wikiart-movement-genre_True-class_3-merge_test1-n_1000_max.csvme of the CSV we want to use
+IMAGES = "train_val_test_True_200/"
+CSV_NAME = "../raw_data/wikiart/wikiart-movement-genre_True-class_8-merge_mov-1-n_200_max_split.csv" # Wikiart-movement-genre_True-class_3-merge_test1-n_1000_max.csvme of the CSV we want to use
 NUM_MOVEMENT = 8 # Number of movements to classify
 NUM_GENRE = 10 # Number of genres to classify
 IMG_HEIGHT = IMG_WIDTH = 224 # Model's inputs shapes
 
-root=MAIN_PATH + IMAGES + '/'
-X_BASE=pd.read_csv(root + CSV_NAME)
+root=MAIN_PATH + IMAGES
+
+#2 following lines are optional, in case it is impossible to decompress images for all movements
+
+X_BASE=pd.read_csv(CSV_NAME)
+X_BASE['img_path']=root  + X_BASE['split'] + '/' + X_BASE['movement'] + '/' + X_BASE['file_name']
 
 
 def baselines_viz_single(img,n_colors = 5,plot=True,array=True,rgb_fft='g'):
@@ -179,7 +184,7 @@ def baselines_single(img,n_colors = 5,rgb_fft='g'):
     return img_dict
 
 
-def baselines_viz_mov(df,root,mov,n_colors = 5,plot=True,array=True,
+def baselines_viz_mov(df,mov,n_colors = 5,plot=True,array=True,
                       max_iter=10000,epsilon=0.5,rgb_fft='g'):
 
     '''
@@ -197,15 +202,15 @@ def baselines_viz_mov(df,root,mov,n_colors = 5,plot=True,array=True,
 
     '''
 
-    path_list=df['file_name'][df['movement']==mov]
+    path_list=df['img_path'][df['movement']==mov]
     pixels=np.empty(3)
     fourier_img=np.zeros((224,224, 3))
 
     for file in list(path_list):
         #average and dominant colors :
         #images are reshaped to 224X224 and pixels are stacked next to each other
-        path=root+file
-        img=plt.imread(path)
+
+        img=plt.imread(file)
         img_224=np.array(tf.image.resize(img,[224,224]))
         img_pixel = np.float32(img_224.reshape(-1, 3))
         pixels=np.vstack((pixels,img_pixel))
@@ -350,20 +355,21 @@ def base_pred_fft(img,base_dict):
 
 
 class Baseline(object):
-    def __init__(self,X,y,X_BASE,n_colors=5):
+    def __init__(self,X,n_colors=5):
         """
             X : panda DataFrame
-            y : panda Series
             X_BASE : base dataframe of 1000 paintings per movement for color trainings
 
         """
 
         self.X=X
-        self.y=y
-        self.X_BASE=X_BASE
         self.n_colors = n_colors
         self.path=root
 
+        self.X['img_path']=root  + X['split'] + '/' + X['movement'] + '/' + X['file_name']
+        self.X_train=self.X[self.X['split']=='train']
+        self.X_val=self.X[self.X['split']=='val']
+        self.X_test=self.X[self.X['split']=='test']
 
     def occurence(self):
 
@@ -392,7 +398,7 @@ class Baseline(object):
         base_dict={}
         for mov in mov_list:
             mov_dict={}
-            baseline=baselines_viz_mov(self.X,root,mov,self.n_colors,plot=False,array=True)
+            baseline=baselines_viz_mov(self.X_train,mov,self.n_colors,plot=False,array=True)
             mov_dict['avg_color']=baseline[0]
             mov_dict['dom_color']=baseline[1]
             mov_dict['dom_weights']=baseline[2]
@@ -410,18 +416,19 @@ class Baseline(object):
 
         """
 
-
-        test_pred=self.X.copy()
+        base_dict=self.basedict()
+        test_pred=self.X_test.copy()
         test_pred['avg_color_pred']=''
         test_pred['dom_color_pred']=''
         test_pred['fft_pred']=''
 
         for paint in test_pred['file_name'].index:
-            img=plt.imread(MAIN_PATH+IMAGES+'/'+test_pred.loc[paint]['file_name'])
-            baseline=baselines_viz_single(img,plot=False)
-            test_pred.loc[paint,'avg_color_pred']=(base_pred_avg(baseline['avg_color'],self.basedict)==test_pred.loc[paint,'movement'])
-            test_pred.loc[paint,'dom_color_pred']=(base_pred_dom(baseline,self.basedict,self.n_colors)==test_pred.loc[paint,'movement'])
-            test_pred.loc[paint,'fft_pred']=(base_pred_fft(baseline,self.basedict)==test_pred.loc[paint,'movement'])
+            img=plt.imread(test_pred.loc[paint]['img_path'])
+            base_img=baselines_single(img)
+
+            test_pred.loc[paint,'avg_color_pred']=(base_pred_avg(base_img['avg_color'],base_dict)==test_pred.loc[paint,'movement'])
+            test_pred.loc[paint,'dom_color_pred']=(base_pred_dom(base_img,base_dict,self.n_colors)==test_pred.loc[paint,'movement'])
+            test_pred.loc[paint,'fft_pred']=(base_pred_fft(base_img,base_dict)==test_pred.loc[paint,'movement'])
 
         baseline_pred_accuracy={'avg_color_pred':test_pred['avg_color_pred'].sum()/test_pred.shape[0],
                             'dom_color_pred':test_pred['dom_color_pred'].sum()/test_pred.shape[0],
