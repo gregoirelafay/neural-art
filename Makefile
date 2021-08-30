@@ -130,3 +130,6 @@ gcp_submit_training:
 
 gcp_ssh_connect:
 	@gcloud compute ssh --project ${PROJECT_ID} --zone ${REGION} jupyter@${VM_INSTANCE_NAME} -- -L 8080:localhost:8080
+
+run_api:
+	@uvicorn api.fast:app --reload  # load web server with code autoreload
