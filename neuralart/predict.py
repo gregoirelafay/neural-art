@@ -1,15 +1,17 @@
 import tensorflow as tf
 from tensorflow.keras import models
-import numpy as np
 
 class Predict():
-    def __init__(self, image):
+    def __init__(self, image=None, model=None):
         self.image = image
-        self.model = None
+        self.class_names = ['abstract', 'color_field_painting', 'cubism', 'expressionism',
+                            'impressionism', 'realism', 'renaissance', 'romanticism']
+        self.model = model
         self.model_path = None
         self.decoded_image = None
         self.img_height = None
         self.img_width = None
+
 
     def decode_image(self, img_height, img_width):
         self.img_height = img_height
