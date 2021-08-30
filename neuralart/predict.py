@@ -17,7 +17,7 @@ class Predict():
         self.img_height = img_height
         self.img_width = img_width
 
-        img = tf.io.decode_png(tf.constant(self.image), channels=3)
+        img = tf.io.decode_image(tf.constant(self.image), channels=3)
         self.decoded_image = tf.image.resize(img,
                                              [self.img_height, self.img_width])
 
