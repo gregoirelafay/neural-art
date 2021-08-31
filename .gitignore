@@ -10,3 +10,4 @@ raw_data/
 .vscode
 notebooks/logs/
 VM_backup/
+models/test_trainer/
