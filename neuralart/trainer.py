@@ -20,8 +20,8 @@ class Trainer():
         self.batch_size = None
         self.buffer_size = None
         self.AUTOTUNE = tf.data.AUTOTUNE
-        self.class_names = ['abstract', 'color_field_painting', 'cubism', 'expressionism',
-                            'impressionism', 'realism', 'renaissance', 'romanticism']
+        self.class_names = np.array(['abstract', 'color_field_painting', 'cubism', 'expressionism',
+                            'impressionism', 'realism', 'renaissance', 'romanticism'])
         self.num_classes = 8
         self.image_count = None
         self.img_height = None
@@ -75,7 +75,7 @@ class Trainer():
 
         self.image_count = (int(
             len(list(self.train_ds)))+int(len(list(self.val_ds)))+int(len(list(self.test_ds))))*self.batch_size
-        self.buffer_size = int(self.image_count/10)
+        self.buffer_size = self.image_count
 
         self.train_ds = self.conf_perf_train_ds_from_directory(self.train_ds)
         self.val_ds = self.conf_perf_val_test_ds_from_directory(self.val_ds)
@@ -90,18 +90,18 @@ class Trainer():
 
         data = pd.read_csv(self.csv_filename_path)
         self.image_count = data.shape[0]
-        self.buffer_size = int(self.image_count/10)
+        self.buffer_size = self.image_count
         assert set(list(data["movement"].unique())) == set(self.class_names)
         assert data["movement"].nunique() == self.num_classes
 
         self.train_ds = tf.data.Dataset.from_tensor_slices(
-            (list(self.image_folder_path + data.loc[data["split"] == "train", "file_name"]), data["movement"]))
+            (list(self.image_folder_path + data.loc[data["split"] == "train", "movement"] + "/" + data.loc[data["split"] == "train", "file_name"]), data.loc[data["split"] == "train", "movement"]))
 
         self.val_ds = tf.data.Dataset.from_tensor_slices(
-            (list(self.image_folder_path + data.loc[data["split"] == "val", "file_name"]), data["movement"]))
+            (list(self.image_folder_path + data.loc[data["split"] == "val", "movement"] + "/" + data.loc[data["split"] == "val", "file_name"]), data.loc[data["split"] == "val", "movement"]))
 
         self.test_ds = tf.data.Dataset.from_tensor_slices(
-            (list(self.image_folder_path + data.loc[data["split"] == "test", "file_name"]), data["movement"]))
+            (list(self.image_folder_path + data.loc[data["split"] == "test", "movement"] + "/" + data.loc[data["split"] == "test", "file_name"]), data.loc[data["split"] == "test", "movement"]))
 
         self.train_ds = self.train_ds.map(
             self.process_path, num_parallel_calls=self.AUTOTUNE)
@@ -282,10 +282,21 @@ class Trainer():
         assert self.test_ds, "Run the create_dataset_from_directory() or create_dataset_from_csv() methods first"
         assert self.model, "Run the build_model() method first"
         assert self.history, "Run the run() method first"
-
         self.results = self.model.evaluate(self.test_ds)
-
         return self.results
+
+    def predict(self,image_path=None):
+        assert self.test_ds, "Run the create_dataset_from_directory() or create_dataset_from_csv() methods first"
+        assert self.model, "Run the build_model() method first"
+        assert self.history, "Run the run() method first"
+
+        if not image_path:
+            return self.model.predict(self.test_ds)
+
+        img = tf.io.read_file(image_path)
+        img = self.decode_img(img)
+
+        return self.model.predict(tf.expand_dims(img, axis=0))
 
     def plot_history(self):
         assert self.test_ds, "Run the create_dataset_from_directory() or create_dataset_from_csv() methods first"
