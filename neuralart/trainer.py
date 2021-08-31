@@ -13,10 +13,10 @@ import seaborn as sns
 class Trainer():
     def __init__(self, experiment_name='test_trainer'):
         self.experiment_name = experiment_name
-        self.csv_filename_path = None
+        self.csv_path = None
         self.image_folder_path = None
-        self.model_folder_path = None
-        self.model_filename = None
+        self.save_model_path = None
+        self.load_model_path = None
         self.batch_size = None
         self.buffer_size = None
         self.AUTOTUNE = tf.data.AUTOTUNE
@@ -81,14 +81,14 @@ class Trainer():
         self.val_ds = self.conf_perf_val_test_ds_from_directory(self.val_ds)
         self.test_ds = self.conf_perf_val_test_ds_from_directory(self.test_ds)
 
-    def create_dataset_from_csv(self, csv_filename_path, image_folder_path, batch_size, img_height, img_width):
-        self.csv_filename_path = csv_filename_path
+    def create_dataset_from_csv(self, csv_path, image_folder_path, batch_size, img_height, img_width):
+        self.csv_path = csv_path
         self.image_folder_path = image_folder_path
         self.batch_size = batch_size
         self.img_height = img_height
         self.img_width = img_width
 
-        data = pd.read_csv(self.csv_filename_path)
+        data = pd.read_csv(self.csv_path)
         self.image_count = data.shape[0]
         self.buffer_size = self.image_count
         assert set(list(data["movement"].unique())) == set(self.class_names)
@@ -270,37 +270,35 @@ class Trainer():
 
         return self.history
 
-    def save_model(self, model_folder_path=None, model_filename=None):
-
-        assert self.model, "Run the build_model() and run() methods first"
+    def save_model(self, save_model_path=None):
+        assert self.model, "Run the build_model() method first"
+        assert self.history, "Run the run() method first"
 
         recorded_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
-        self.model_filename = model_filename
-        self.model_folder_path = model_folder_path
+        self.save_model_path = save_model_path
 
-        if not model_filename:
-            self.model_filename = f"{recorded_time}-images_{self.image_count}-unfreeze_{self.trainable_layers}-batch_{self.batch_size}"
+        if not self.save_model_path:
+            self.save_model_path = os.path.join(
+                '..','..','models', self.experiment_name, self.model_name, f"{recorded_time}-images_{self.image_count}-unfreeze_{self.trainable_layers}-batch_{self.batch_size}")
 
-        if not model_folder_path:
-            self.model_folder_path = os.path.join('..', 'models', self.experiment_name, self.model_name)
+        self.model.save(self.save_model_path)
 
-        self.model.save(os.path.join(self.model_folder_path, self.model_filename))
-
-    def load_model(self, model_path):
-        self.model = models.load_model(model_path)
+    def load_model(self, load_model_path):
+        self.load_model_path = load_model_path
+        self.model = models.load_model(self.load_model_path)
 
     def evaluate(self):
         assert self.test_ds, "Run the create_dataset_from_directory() or create_dataset_from_csv() methods first"
         assert self.model, "Run the build_model() method first"
-        assert self.history, "Run the run() method first"
+        assert self.history or self.load_model_path, "Run the run() method first"
         self.results = self.model.evaluate(self.test_ds)
         return self.results
 
     def predict(self,image_path=None):
         assert self.test_ds, "Run the create_dataset_from_directory() or create_dataset_from_csv() methods first"
         assert self.model, "Run the build_model() method first"
-        assert self.history, "Run the run() method first"
+        assert self.history or self.load_model_path, "Run the run() method first"
 
         if not image_path:
             return self.model.predict(self.test_ds)
@@ -351,7 +349,7 @@ class Trainer():
 
         if make_prediction:
             assert self.model, "Run the build_model() method first"
-            assert self.history, "Run the run() method first"
+            assert self.history or self.load_model_path, "Run the run() method first"
             pred_batch = self.model.predict(image_batch.numpy())
 
         plt.figure(figsize=(15, 15))
@@ -373,7 +371,7 @@ class Trainer():
     def plot_confusion_matrix(self):
         assert self.val_ds, "Run the create_dataset_from_directory() or create_dataset_from_csv() methods first"
         assert self.model, "Run the build_model() method first"
-        assert self.history, "Run the run() method first"
+        assert self.history or self.load_model_path, "Run the run() method first"
 
         y_pred = []  # store predicted labels
         y_true = []  # store true labels
