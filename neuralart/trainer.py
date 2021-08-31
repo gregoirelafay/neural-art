@@ -112,9 +112,6 @@ class Trainer():
                               ["movement", "file_name"]].itertuples()
         ], data.loc[data["split"] == "test", "movement"]))
 
-        #self.test_ds = tf.data.Dataset.from_tensor_slices(
-        #    (list(self.image_folder_path + data.loc[data["split"] == "test", "movement"] + "/" + data.loc[data["split"] == "test", "file_name"]), data.loc[data["split"] == "test", "movement"]))
-
         self.train_ds = self.train_ds.map(
             self.process_path, num_parallel_calls=self.AUTOTUNE)
         self.val_ds = self.val_ds.map(
