@@ -5,12 +5,15 @@ import tensorflow as tf
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
 import cv2
+import os
 
 import neuralart.fourier as fourier
 
-MAIN_PATH =  "../raw_data/wikiart/" # Path to the directory which contains CSVs and the folder 'dataset'
+MAIN_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/data/wikiart/"
+
+#MAIN_PATH =  "../data/wikiart/" # Path to the directory which contains CSVs and the folder 'dataset'
 IMAGES = "train_val_test_True_all/"
-CSV_NAME = "../raw_data/wikiart/wikiart-movement-genre_True-class_8-merge_mov-1_split.csv" # Wikiart-movement-genre_True-class_3-merge_test1-n_1000_max.csvme of the CSV we want to use
+CSV_NAME = "../data/wikiart/wikiart-movement-genre_True-class_8-merge_mov-1_split.csv" # Wikiart-movement-genre_True-class_3-merge_test1-n_1000_max.csvme of the CSV we want to use
 NUM_MOVEMENT = 8 # Number of movements to classify
 NUM_GENRE = 10 # Number of genres to classify
 IMG_HEIGHT = IMG_WIDTH = 224 # Model's inputs shapes
@@ -20,10 +23,11 @@ root=MAIN_PATH + IMAGES
 #2 following lines are optional, in case it is impossible to decompress images for all movements
 
 
-IMAGES_BASE = "train_val_test_True_1440/"
-CSV_NAME_BASE = "../raw_data/wikiart/wikiart-movement-genre_True-class_8-merge_mov-1-n_1440_max_split.csv" # Wikiart-movement-genre_True-class_3-merge_test1-n_1000_max.csvme of the CSV we want to use
+IMAGES_BASE = "train_val_test_True_200/"
+CSV_NAME_BASE = "../data/wikiart/wikiart-movement-genre_True-class_8-merge_mov-1-n_200_max_split.csv" # Wikiart-movement-genre_True-class_3-merge_test1-n_1000_max.csvme of the CSV we want to use
 X_BASE=pd.read_csv(CSV_NAME_BASE)
-X_BASE['img_path']=root  + X_BASE['split'] + '/' + X_BASE['movement'] + '/' + X_BASE['file_name']
+X_BASE['img_path']=MAIN_PATH +IMAGES_BASE + X_BASE['split'] + '/' +\
+    X_BASE['movement'] + '/' + X_BASE['file_name']
 
 
 def baselines_viz_single(img,n_colors = 5,plot=True,array=True,rgb_fft='g'):
@@ -438,21 +442,31 @@ def base_pred_fft(img,base_dict):
 
 
 class Baseline(object):
-    def __init__(self,X,n_colors=5):
+    def __init__(self,X,n_colors=5,test=False):
         """
             X : panda DataFrame
             X_BASE : base dataframe of 1000 paintings per movement for color trainings
 
+            test argument to be set as True if chosen to work on reduced X_BASE
+            dataset
         """
 
         self.X=X
         self.n_colors = n_colors
         self.path=root
 
-        self.X['img_path']=root  + X['split'] + '/' + X['movement'] + '/' + X['file_name']
-        self.X_train=self.X[self.X['split']=='train']
-        self.X_val=self.X[self.X['split']=='val']
-        self.X_test=self.X[self.X['split']=='test']
+        if test:
+
+            self.X=X_BASE
+            self.X_train=self.X[self.X['split']=='train']
+            self.X_val=self.X[self.X['split']=='val']
+            self.X_test=self.X[self.X['split']=='test']
+
+        else:
+            self.X['img_path']=root  + X['split'] + '/' + X['movement'] + '/' + X['file_name']
+            self.X_train=self.X[self.X['split']=='train']
+            self.X_val=self.X[self.X['split']=='val']
+            self.X_test=self.X[self.X['split']=='test']
 
     def occurence(self):
 
@@ -468,11 +482,13 @@ class Baseline(object):
         return baseline_mov , baseline_gen
 
 
-    def basedict(self):
+    def basedict(self,test=False):
 
         """
             Compute the baseline dictionnary summaryzing mean FFT, average and
             dominant colors for each movement
+
+
 
         """
 
@@ -518,3 +534,8 @@ class Baseline(object):
                             'fft_pred':test_pred['fft_pred'].sum()/test_pred.shape[0]}
 
         return baseline_pred_accuracy
+
+
+
+if __name__=='__main__':
+    print(MAIN_PATH)
