@@ -10,7 +10,6 @@ raw_data/
 .vscode
 VM_backup/
 models/test_trainer/
-notebooks/logs/
 notebooks/alex/
 notebooks/gregoire/
 notebooks/pablo/
