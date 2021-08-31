@@ -17,6 +17,9 @@ gcsfs
 google-cloud-storage
 mlflow
 s3fs
+uvicorn
+python-multipart
+fastapi
 
 # utilities
 joblib
