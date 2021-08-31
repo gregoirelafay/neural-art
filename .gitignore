@@ -8,6 +8,10 @@ raw_data/
 .env
 .python-version
 .vscode
-notebooks/logs/
 VM_backup/
 models/test_trainer/
+notebooks/logs/
+notebooks/alex
+notebooks/gregoire
+notebooks/pablo
+notebooks/quentin
