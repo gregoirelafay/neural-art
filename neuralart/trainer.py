@@ -46,7 +46,7 @@ class Trainer():
         self.img_width = img_width
 
         self.train_ds = tf.keras.preprocessing.image_dataset_from_directory(
-            directory=self.image_folder_path + 'train',
+            directory=os.path.join(self.image_folder_path,'train'),
             labels='inferred',
             image_size=(self.img_height, self.img_width),
             batch_size=self.batch_size,
@@ -56,7 +56,7 @@ class Trainer():
         assert len(self.train_ds.class_names) == self.num_classes
 
         self.val_ds = tf.keras.preprocessing.image_dataset_from_directory(
-            directory=self.image_folder_path + 'val',
+            directory=os.path.join(self.image_folder_path,'val'),
             labels='inferred',
             image_size=(self.img_height, self.img_width),
             label_mode='categorical',
@@ -65,7 +65,7 @@ class Trainer():
         assert len(self.val_ds.class_names) == self.num_classes
 
         self.test_ds = tf.keras.preprocessing.image_dataset_from_directory(
-            directory=self.image_folder_path + 'test',
+            directory=os.path.join(self.image_folder_path,'test'),
             labels='inferred',
             image_size=(self.img_height, self.img_width),
             label_mode='categorical',
