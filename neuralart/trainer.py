@@ -287,6 +287,9 @@ class Trainer():
 
         self.model.save(os.path.join(self.model_folder_path, self.model_filename))
 
+    def load_model(self, model_path):
+        self.model = models.load_model(model_path)
+
     def evaluate(self):
         assert self.test_ds, "Run the create_dataset_from_directory() or create_dataset_from_csv() methods first"
         assert self.model, "Run the build_model() method first"

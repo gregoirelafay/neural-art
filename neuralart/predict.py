@@ -12,7 +12,6 @@ class Predict():
         self.img_height = None
         self.img_width = None
 
-
     def decode_image(self, img_height, img_width):
         assert self.image, "Please provide an image to the Predict() class"
         self.img_height = img_height
