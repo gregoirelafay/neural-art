@@ -9,7 +9,7 @@ import cv2
 import neuralart.fourier as fourier
 
 MAIN_PATH =  "../raw_data/wikiart/" # Path to the directory which contains CSVs and the folder 'dataset'
-IMAGES = "train_val_test_True_200/"
+IMAGES = "train_val_test_True_all/"
 CSV_NAME = "../raw_data/wikiart/wikiart-movement-genre_True-class_8-merge_mov-1-n_200_max_split.csv" # Wikiart-movement-genre_True-class_3-merge_test1-n_1000_max.csvme of the CSV we want to use
 NUM_MOVEMENT = 8 # Number of movements to classify
 NUM_GENRE = 10 # Number of genres to classify
@@ -19,7 +19,10 @@ root=MAIN_PATH + IMAGES
 
 #2 following lines are optional, in case it is impossible to decompress images for all movements
 
-X_BASE=pd.read_csv(CSV_NAME)
+
+IMAGES_BASE = "train_val_test_True_200/"
+CSV_NAME_BASE = "../raw_data/wikiart/wikiart-movement-genre_True-class_8-merge_mov-1-n_200_max_split.csv" # Wikiart-movement-genre_True-class_3-merge_test1-n_1000_max.csvme of the CSV we want to use
+X_BASE=pd.read_csv(CSV_NAME_BASE)
 X_BASE['img_path']=root  + X_BASE['split'] + '/' + X_BASE['movement'] + '/' + X_BASE['file_name']
 
 
