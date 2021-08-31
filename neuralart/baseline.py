@@ -1,21 +1,29 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from numpy.lib.polynomial import roots
 import tensorflow as tf
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
 import cv2
 
-import fourier
+import neuralart.fourier as fourier
 
 MAIN_PATH =  "../raw_data/wikiart/" # Path to the directory which contains CSVs and the folder 'dataset'
-IMAGES = "dataset"
-CSV_NAME = "wikiart-movement-genre_True-class_8-merge_mov-1-n_1000_max.csv" # Nwikiart-movement-genre_True-class_3-merge_test1-n_1000_max.csvme of the CSV we want to use
+IMAGES = "train_val_test_True_all/"
+CSV_NAME = "../raw_data/wikiart/wikiart-movement-genre_True-class_8-merge_mov-1-n_200_max_split.csv" # Wikiart-movement-genre_True-class_3-merge_test1-n_1000_max.csvme of the CSV we want to use
 NUM_MOVEMENT = 8 # Number of movements to classify
 NUM_GENRE = 10 # Number of genres to classify
 IMG_HEIGHT = IMG_WIDTH = 224 # Model's inputs shapes
 
-root=MAIN_PATH + IMAGES + '/'
-X_BASE=pd.read_csv(root + CSV_NAME)
+root=MAIN_PATH + IMAGES
+
+#2 following lines are optional, in case it is impossible to decompress images for all movements
+
+
+IMAGES_BASE = "train_val_test_True_200/"
+CSV_NAME_BASE = "../raw_data/wikiart/wikiart-movement-genre_True-class_8-merge_mov-1-n_200_max_split.csv" # Wikiart-movement-genre_True-class_3-merge_test1-n_1000_max.csvme of the CSV we want to use
+X_BASE=pd.read_csv(CSV_NAME_BASE)
+X_BASE['img_path']=root  + X_BASE['split'] + '/' + X_BASE['movement'] + '/' + X_BASE['file_name']
 
 
 def baselines_viz_single(img,n_colors = 5,plot=True,array=True,rgb_fft='g'):
@@ -24,7 +32,8 @@ def baselines_viz_single(img,n_colors = 5,plot=True,array=True,rgb_fft='g'):
         Function to compute average color, n-dominant colors and Fourier
         magnitude spectrum from an image
 
-        #requires opencv-python
+        Warning :used for vizualisation of a limited number of images,
+        do not use for accuracy computation
 
         img : unflattened image to be studied - np.ndarray (ex shape : 603,325,3)
         n-colors : n-dominant colors to be displayed
@@ -110,13 +119,84 @@ def baselines_viz_single(img,n_colors = 5,plot=True,array=True,rgb_fft='g'):
     return img_dict
 
 
-def baselines_viz_mov(df,root,mov,n_colors = 5,plot=True,array=True,
+def baselines_single(img,n_colors = 5,rgb_fft='g'):
+
+    '''
+        Function to compute average color, n-dominant colors and Fourier
+        magnitude spectrum from an image
+
+        #used for accuracy calculation of a dataset
+
+        img : unflattened image to be studied - np.ndarray (ex shape : 603,325,3)
+        n-colors : n-dominant colors to be displayed
+        plot : True -> display plot
+        array : True -> returns a dictionary of above computed values
+        rgb_fft : [r,g,b] -> color for FFT display
+
+    '''
+
+    #resize and flatten
+    img_224=np.array(tf.image.resize(img,[224,224]))
+    img_pixel = np.float32(img_224.reshape(-1, 3))
+
+    #average color
+    avg_color=img_pixel.mean(axis=0)
+    img_pixel.shape
+
+    #KMean for cluster identification of dominant colors
+    pixels=np.float32(img_pixel)
+
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 1000, .5)
+    flags = cv2.KMEANS_RANDOM_CENTERS
+
+    _, labels, palette = cv2.kmeans(pixels, n_colors, None, criteria, 10, flags)
+    _, counts = np.unique(labels, return_counts=True)
+    dom_color = palette[np.argmax(counts)]
+
+
+    #Magnitude Spectrum
+
+    rgb_dict={'r':0,'g':1,'b':2}
+
+    U=np.array(img_224[:,:,rgb_dict[rgb_fft]],dtype=np.float64)
+    V=np.fft.fft2(U)
+    VC = np.fft.fftshift(V)
+    P = np.power(np.abs(VC),2)
+    img_tff = fourier.matriceImageLog(P,[1,0,0])
+
+
+    #Viz functions
+    avg_patch = np.ones(shape=(224,224,3), dtype=np.uint8)*np.uint8(avg_color)
+
+    indices = np.argsort(counts)[::-1]
+    freqs = np.cumsum(np.hstack([[0], counts[indices]/float(counts.sum())]))
+    rows = np.int_(224*freqs)
+
+    dom_patch = np.zeros(shape=(224,224,3), dtype=np.uint8)
+    for i in range(len(rows) - 1):
+        dom_patch[rows[i]:rows[i + 1], :, :] += np.uint8(palette[indices[i]])
+
+    weights=counts/pixels.shape[0]
+
+    img_dict={}
+    img_dict['avg_color']=avg_color
+    img_dict['dom_color']=palette
+    img_dict['dom_weights']=weights
+    img_dict['magnitude_spectrum']=img_tff
+
+    return img_dict
+
+
+def baselines_viz_mov(df,mov,n_colors = 5,plot=True,array=True,
                       max_iter=10000,epsilon=0.5,rgb_fft='g'):
 
     '''
         Function to return a dictionnary of computed average color, dominant
         n-colors clustered by Kmeans and mean FFT Magnitude Spectrum of a
         chosen painting movement
+
+        Warning :used for vizualisation of a limited number of images,
+        do not use for accuracy computation
 
 
         df : DataFrame ; initial dataframe with filename and movement
@@ -128,15 +208,15 @@ def baselines_viz_mov(df,root,mov,n_colors = 5,plot=True,array=True,
 
     '''
 
-    path_list=df['file_name'][df['movement']==mov]
+    path_list=df['img_path'][df['movement']==mov]
     pixels=np.empty(3)
     fourier_img=np.zeros((224,224, 3))
 
     for file in list(path_list):
         #average and dominant colors :
         #images are reshaped to 224X224 and pixels are stacked next to each other
-        path=root+file
-        img=plt.imread(path)
+
+        img=plt.imread(file)
         img_224=np.array(tf.image.resize(img,[224,224]))
         img_pixel = np.float32(img_224.reshape(-1, 3))
         pixels=np.vstack((pixels,img_pixel))
@@ -207,6 +287,83 @@ def baselines_viz_mov(df,root,mov,n_colors = 5,plot=True,array=True,
         out =(avg_color,palette,weights,magnitude_spectrum)
 
     return out
+
+
+def baselines_mov(df,mov,n_colors = 5,max_iter=10000,epsilon=0.5,rgb_fft='g'):
+
+    '''
+        Function to return a dictionnary of computed average color, dominant
+        n-colors clustered by Kmeans and mean FFT Magnitude Spectrum of a
+        chosen painting movement
+
+        used for accuracy calculation of a dataset
+
+        df : DataFrame ; initial dataframe with filename and movement
+        mov : String ; chosen movement for baseline observation
+        plot : Bool ; chose to print the colors when executing the function
+        array : Bool ; returns the arrays for colors : (avg_color,palette)
+        max_iter : max iterations for Kmean clustering
+        epsilon : Kmean convergence epsilon
+
+    '''
+
+    path_list=df['img_path'][df['movement']==mov]
+    pixels=np.empty(3)
+    fourier_img=np.zeros((224,224, 3))
+
+    for file in list(path_list):
+        #average and dominant colors :
+        #images are reshaped to 224X224 and pixels are stacked next to each other
+
+        img=plt.imread(file)
+        img_224=np.array(tf.image.resize(img,[224,224]))
+        img_pixel = np.float32(img_224.reshape(-1, 3))
+        pixels=np.vstack((pixels,img_pixel))
+
+
+        #Magnitude Spectrum on selected color
+
+        rgb_dict={'r':0,'g':1,'b':2}
+
+        U=np.array(img_224[:,:,rgb_dict[rgb_fft]],dtype=np.float64)
+        V=np.fft.fft2(U)
+        VC = np.fft.fftshift(V)
+        P = np.power(np.abs(VC),2)
+        img_tff = fourier.matriceImageLog(P,[1,0,0])
+        fourier_img += img_tff
+
+    avg_color=pixels.mean(axis=0)
+
+
+    #Kmean clusterization to identify
+    #first pixel for initialization, to be removed
+    pixels=np.float32(pixels)[1:]
+
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, max_iter, epsilon)
+    flags = cv2.KMEANS_RANDOM_CENTERS
+
+    _, labels, palette = cv2.kmeans(pixels, n_colors, None, criteria, 10, flags)
+    _, counts = np.unique(labels, return_counts=True)
+
+
+        ##Magnitude Spectrum
+
+    magnitude_spectrum = fourier_img/len(path_list)
+
+        #Viz functions
+
+    indices = np.argsort(counts)[::-1]
+    freqs = np.cumsum(np.hstack([[0], counts[indices]/float(counts.sum())]))
+    rows = np.int_(224*freqs)
+
+    dom_patch = np.zeros(shape=(224,224,3), dtype=np.uint8)
+    for i in range(len(rows) - 1):
+        dom_patch[rows[i]:rows[i + 1], :, :] += np.uint8(palette[indices[i]])
+
+    weights=counts/pixels.shape[0]
+
+
+    return avg_color,palette,weights,magnitude_spectrum
 
 
 def base_pred_avg(img,base_dict):
@@ -281,20 +438,21 @@ def base_pred_fft(img,base_dict):
 
 
 class Baseline(object):
-    def __init__(self,X,y,X_BASE,n_colors=5):
+    def __init__(self,X,n_colors=5):
         """
             X : panda DataFrame
-            y : panda Series
             X_BASE : base dataframe of 1000 paintings per movement for color trainings
 
         """
 
         self.X=X
-        self.y=y
-        self.X_BASE=X_BASE
         self.n_colors = n_colors
         self.path=root
 
+        self.X['img_path']=root  + X['split'] + '/' + X['movement'] + '/' + X['file_name']
+        self.X_train=self.X[self.X['split']=='train']
+        self.X_val=self.X[self.X['split']=='val']
+        self.X_test=self.X[self.X['split']=='test']
 
     def occurence(self):
 
@@ -323,7 +481,7 @@ class Baseline(object):
         base_dict={}
         for mov in mov_list:
             mov_dict={}
-            baseline=baselines_viz_mov(self.X,root,mov,self.n_colors,plot=False,array=True)
+            baseline=baselines_mov(self.X_train,mov,self.n_colors)
             mov_dict['avg_color']=baseline[0]
             mov_dict['dom_color']=baseline[1]
             mov_dict['dom_weights']=baseline[2]
@@ -341,6 +499,22 @@ class Baseline(object):
 
         """
 
-        ####### TO BE DONE ######
+        base_dict=self.basedict()
+        test_pred=self.X_test.copy()
+        test_pred['avg_color_pred']=''
+        test_pred['dom_color_pred']=''
+        test_pred['fft_pred']=''
 
-        pass
+        for paint in test_pred['file_name'].index:
+            img=plt.imread(test_pred.loc[paint]['img_path'])
+            base_img=baselines_single(img)
+
+            test_pred.loc[paint,'avg_color_pred']=(base_pred_avg(base_img['avg_color'],base_dict)==test_pred.loc[paint,'movement'])
+            test_pred.loc[paint,'dom_color_pred']=(base_pred_dom(base_img,base_dict,self.n_colors)==test_pred.loc[paint,'movement'])
+            test_pred.loc[paint,'fft_pred']=(base_pred_fft(base_img,base_dict)==test_pred.loc[paint,'movement'])
+
+        baseline_pred_accuracy={'avg_color_pred':test_pred['avg_color_pred'].sum()/test_pred.shape[0],
+                            'dom_color_pred':test_pred['dom_color_pred'].sum()/test_pred.shape[0],
+                            'fft_pred':test_pred['fft_pred'].sum()/test_pred.shape[0]}
+
+        return baseline_pred_accuracy
