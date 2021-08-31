@@ -19,6 +19,7 @@ class Trainer():
         self.load_model_path = None
         self.batch_size = None
         self.buffer_size = None
+        self.shuffle_dataframe = None
         self.AUTOTUNE = tf.data.AUTOTUNE
         self.class_names = np.array(['abstract', 'color_field_painting', 'cubism', 'expressionism',
                             'impressionism', 'realism', 'renaissance', 'romanticism'])
@@ -81,14 +82,17 @@ class Trainer():
         self.val_ds = self.conf_perf_val_test_ds_from_directory(self.val_ds)
         self.test_ds = self.conf_perf_val_test_ds_from_directory(self.test_ds)
 
-    def create_dataset_from_csv(self, csv_path, image_folder_path, batch_size, img_height, img_width):
+    def create_dataset_from_csv(self, csv_path, image_folder_path, batch_size, img_height, img_width, shuffle_dataframe=False):
         self.csv_path = csv_path
         self.image_folder_path = image_folder_path
         self.batch_size = batch_size
         self.img_height = img_height
         self.img_width = img_width
+        self.shuffle_dataframe = shuffle_dataframe
 
         data = pd.read_csv(self.csv_path)
+        if self.shuffle_dataframe:
+            data = data.sample(frac=1)
         self.image_count = data.shape[0]
         self.buffer_size = self.image_count
         assert set(list(data["movement"].unique())) == set(self.class_names)
