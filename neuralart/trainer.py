@@ -94,14 +94,26 @@ class Trainer():
         assert set(list(data["movement"].unique())) == set(self.class_names)
         assert data["movement"].nunique() == self.num_classes
 
-        self.train_ds = tf.data.Dataset.from_tensor_slices(
-            (list(self.image_folder_path + data.loc[data["split"] == "train", "movement"] + "/" + data.loc[data["split"] == "train", "file_name"]), data.loc[data["split"] == "train", "movement"]))
+        self.train_ds = tf.data.Dataset.from_tensor_slices(([
+            os.path.join(self.image_folder_path,i.movement, i.file_name)
+            for i in data.loc[data["split"] == "train",
+                              ["movement", "file_name"]].itertuples()
+        ], data.loc[data["split"] == "train", "movement"]))
 
-        self.val_ds = tf.data.Dataset.from_tensor_slices(
-            (list(self.image_folder_path + data.loc[data["split"] == "val", "movement"] + "/" + data.loc[data["split"] == "val", "file_name"]), data.loc[data["split"] == "val", "movement"]))
+        self.val_ds = tf.data.Dataset.from_tensor_slices(([
+            os.path.join(self.image_folder_path,i.movement, i.file_name)
+            for i in data.loc[data["split"] == "val",
+                              ["movement", "file_name"]].itertuples()
+        ], data.loc[data["split"] == "val", "movement"]))
 
-        self.test_ds = tf.data.Dataset.from_tensor_slices(
-            (list(self.image_folder_path + data.loc[data["split"] == "test", "movement"] + "/" + data.loc[data["split"] == "test", "file_name"]), data.loc[data["split"] == "test", "movement"]))
+        self.test_ds = tf.data.Dataset.from_tensor_slices(([
+            os.path.join(self.image_folder_path, i.movement, i.file_name)
+            for i in data.loc[data["split"] == "test",
+                              ["movement", "file_name"]].itertuples()
+        ], data.loc[data["split"] == "test", "movement"]))
+
+        #self.test_ds = tf.data.Dataset.from_tensor_slices(
+        #    (list(self.image_folder_path + data.loc[data["split"] == "test", "movement"] + "/" + data.loc[data["split"] == "test", "file_name"]), data.loc[data["split"] == "test", "movement"]))
 
         self.train_ds = self.train_ds.map(
             self.process_path, num_parallel_calls=self.AUTOTUNE)
