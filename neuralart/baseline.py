@@ -360,7 +360,7 @@ def basedict_loader():
 
     """
 
-    base_dict=np.load('baseline.npy',allow_pickle=True)[()]
+    base_dict=np.load('baseline/baseline.npy',allow_pickle=True)[()]
 
     return base_dict
 
@@ -492,7 +492,7 @@ class Baseline(object):
             mov_dict['mov_fft']=baseline[3]
             base_dict[mov]=mov_dict
 
-        np.save('baseline.npy',base_dict)
+        np.save('baseline/baseline.npy',base_dict)
 
         return base_dict
 
