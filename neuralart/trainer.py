@@ -36,6 +36,7 @@ class Trainer():
         self.random_rotation = None
         self.random_zoom = None
         self.epochs = None
+        self.use_rlrp = None
         self.learning_rate = None
         self.history = None
         self.results = None
@@ -253,23 +254,27 @@ class Trainer():
             RandomZoom(self.random_zoom)
             ])
 
-    def run(self, epochs=100):
+    def run(self, epochs=100, use_rlrp=False):
         self.epochs = epochs
+        self.use_rlrp = use_rlrp
 
         assert self.model, "Run the build_model() method first"
         assert self.train_ds and self.val_ds, "Run the create_dataset_from_directory() or create_dataset_from_csv() methods first"
 
         es = EarlyStopping(monitor='val_loss', patience=20,
                            mode='min', restore_best_weights=True)
+        callbacks = [es]
 
-        rlrp = ReduceLROnPlateau(
-            monitor='val_loss', factor=0.4, patience=3, min_lr=1e-8)
+        if self.use_rlrp:
+            rlrp = ReduceLROnPlateau(monitor='val_loss', factor=0.4,
+                                     patience=3, min_lr=1e-8)
+            callbacks.append(rlrp)
 
         self.history = self.model.fit(
             self.train_ds,
             epochs=self.epochs,
             validation_data=self.val_ds,
-            callbacks=[es, rlrp],
+            callbacks=callbacks,
             use_multiprocessing=True)
 
         return self.history
