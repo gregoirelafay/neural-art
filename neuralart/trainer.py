@@ -36,6 +36,7 @@ class Trainer():
         self.random_rotation = None
         self.random_zoom = None
         self.epochs = None
+        self.use_rlrp = None
         self.learning_rate = None
         self.history = None
         self.results = None
@@ -78,9 +79,9 @@ class Trainer():
             len(list(self.train_ds)))+int(len(list(self.val_ds)))+int(len(list(self.test_ds))))*self.batch_size
         self.buffer_size = self.image_count
 
-        self.train_ds = self.conf_perf_train_ds_from_directory(self.train_ds)
-        self.val_ds = self.conf_perf_val_test_ds_from_directory(self.val_ds)
-        self.test_ds = self.conf_perf_val_test_ds_from_directory(self.test_ds)
+        self.train_ds = self.conf_perf_ds_from_directory(self.train_ds, train_split=True)
+        self.val_ds = self.conf_perf_ds_from_directory(self.val_ds)
+        self.test_ds = self.conf_perf_ds_from_directory(self.test_ds)
 
     def create_dataset_from_csv(self, csv_path, image_folder_path, batch_size, img_height, img_width, shuffle_dataframe=False):
         self.csv_path = csv_path
@@ -123,9 +124,9 @@ class Trainer():
         self.test_ds = self.test_ds.map(
             self.process_path, num_parallel_calls=self.AUTOTUNE)
 
-        self.train_ds = self.conf_perf_train_ds_from_csv(self.train_ds)
-        self.val_ds = self.conf_perf_val_test_ds_from_csv(self.val_ds)
-        self.test_ds = self.conf_perf_val_test_ds_from_csv(self.test_ds)
+        self.train_ds = self.conf_perf_ds_from_csv(self.train_ds,train_split=True)
+        self.val_ds = self.conf_perf_ds_from_csv(self.val_ds)
+        self.test_ds = self.conf_perf_ds_from_csv(self.test_ds)
 
     def get_label(self,label):
         class_loc = label == self.class_names
@@ -145,27 +146,18 @@ class Trainer():
         img = self.decode_img(img)
         return img, label
 
-    def conf_perf_train_ds_from_csv(self, ds):
+    def conf_perf_ds_from_csv(self, ds, train_split=False):
         ds = ds.cache()
-        ds = ds.shuffle(buffer_size=self.buffer_size)
+        if train_split:
+            ds = ds.shuffle(buffer_size=self.buffer_size)
         ds = ds.batch(self.batch_size)
         ds = ds.prefetch(buffer_size=self.AUTOTUNE)
         return ds
 
-    def conf_perf_val_test_ds_from_csv(self, ds):
+    def conf_perf_ds_from_directory(self, ds, train_split=False):
         ds = ds.cache()
-        ds = ds.batch(self.batch_size)
-        ds = ds.prefetch(buffer_size=self.AUTOTUNE)
-        return ds
-
-    def conf_perf_train_ds_from_directory(self, ds):
-        ds = ds.cache()
-        ds = ds.shuffle(buffer_size=self.buffer_size)
-        ds = ds.prefetch(buffer_size=self.AUTOTUNE)
-        return ds
-
-    def conf_perf_val_test_ds_from_directory(self, ds):
-        ds = ds.cache()
+        if train_split:
+            ds = ds.shuffle(buffer_size=self.buffer_size)
         ds = ds.prefetch(buffer_size=self.AUTOTUNE)
         return ds
 
@@ -177,7 +169,7 @@ class Trainer():
         self.learning_rate=learning_rate
 
         assert self.model_name in {
-            "VGG16", "ResNet50", "custom"}, "Choose a model among the following ones: 'VGG16', 'ResNet50', 'custom'"
+            "VGG16", "ResNet50", "custom"}, "Choose a model among the following ones: 'VGG16', 'ResNet50', 'custom_1', 'custom_2"
 
         data_augmentation_layers = self.get_data_augmentation_layers()
 
@@ -208,7 +200,7 @@ class Trainer():
 
             self.model = Model(inputs, outputs)
 
-        if self.model_name == 'custom':
+        if self.model_name == 'custom_1':
             self.model = models.Sequential([
                 layers.InputLayer(input_shape=(
                     self.img_height, self.img_width, 3)),
@@ -231,6 +223,55 @@ class Trainer():
                 layers.Dense(self.num_classes, activation='softmax')
             ])
 
+        if self.model_name == 'custom_2':
+            self.model = models.Sequential()
+            self.model.add(Rescaling(1./255, input_shape=(self.img_height, self.img_width, 3)))
+            self.model.add(data_augmentation_layers)
+
+            self.model.add(layers.Conv2D(64, (3, 3)))
+            self.model.add(layers.Activation('relu'))
+            self.model.add(layers.Conv2D(64, (3, 3)))
+            self.model.add(layers.Activation('relu'))
+            self.model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+
+            self.model.add(layers.Conv2D(128, (3, 3)))
+            self.model.add(layers.Activation('relu'))
+            self.model.add(layers.Conv2D(128, (3, 3)))
+            self.model.add(layers.Activation('relu'))
+            self.model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+
+            self.model.add(layers.Conv2D(256, (3, 3)))
+            self.model.add(layers.Activation('relu'))
+            self.model.add(layers.Conv2D(256, (3, 3)))
+            self.model.add(layers.Activation('relu'))
+            self.model.add(layers.Conv2D(256, (3, 3)))
+            self.model.add(layers.Activation('relu'))
+            self.model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+
+            self.model.add(layers.Conv2D(512, (3, 3)))
+            self.model.add(layers.Activation('relu'))
+            self.model.add(layers.Conv2D(512, (3, 3)))
+            self.model.add(layers.Activation('relu'))
+            self.model.add(layers.Conv2D(512, (3, 3)))
+            self.model.add(layers.Activation('relu'))
+            self.model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+
+            self.model.add(layers.Conv2D(512, (3, 3)))
+            self.model.add(layers.Activation('relu'))
+            self.model.add(layers.Conv2D(512, (3, 3)))
+            self.model.add(layers.Activation('relu'))
+            self.model.add(layers.Conv2D(512, (3, 3)))
+            self.model.add(layers.Activation('relu'))
+            self.model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+
+            self.model.add(layers.Flatten())  # this converts our 3D feature maps to 1D feature vectors
+            self.model.add(layers.Dense(4096))
+            self.model.add(layers.Activation('relu'))
+            self.model.add(layers.Dense(4096))
+            self.model.add(layers.Activation('relu'))
+            self.model.add(layers.Dropout(0.5))
+            self.model.add(layers.Dense(8))
+            self.model.add(layers.Activation('softmax'))
 
         self.model.compile(optimizer=optimizers.Adamax(learning_rate=self.learning_rate),
                            loss='categorical_crossentropy',
@@ -253,23 +294,27 @@ class Trainer():
             RandomZoom(self.random_zoom)
             ])
 
-    def run(self, epochs=100):
+    def run(self, epochs=100, use_rlrp=False):
         self.epochs = epochs
+        self.use_rlrp = use_rlrp
 
         assert self.model, "Run the build_model() method first"
         assert self.train_ds and self.val_ds, "Run the create_dataset_from_directory() or create_dataset_from_csv() methods first"
 
         es = EarlyStopping(monitor='val_loss', patience=20,
                            mode='min', restore_best_weights=True)
+        callbacks = [es]
 
-        rlrp = ReduceLROnPlateau(
-            monitor='val_loss', factor=0.4, patience=3, min_lr=1e-8)
+        if self.use_rlrp:
+            rlrp = ReduceLROnPlateau(monitor='val_loss', factor=0.4,
+                                     patience=3, min_lr=1e-8)
+            callbacks.append(rlrp)
 
         self.history = self.model.fit(
             self.train_ds,
             epochs=self.epochs,
             validation_data=self.val_ds,
-            callbacks=[es, rlrp],
+            callbacks=callbacks,
             use_multiprocessing=True)
 
         return self.history

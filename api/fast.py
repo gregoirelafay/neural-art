@@ -12,7 +12,7 @@ import os
 
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-PATH_TO_LOCAL_MODEL = os.path.join(root,"models","model-test-webapp")
+PATH_TO_LOCAL_MODEL = os.path.join(root,"models","VGG16","20210831-135428-images_41472-unfreeze_2-batch_128")
 
 model = models.load_model(PATH_TO_LOCAL_MODEL)
 
