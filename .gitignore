@@ -10,9 +10,9 @@ raw_data/
 .vscode
 VM_backup/
 models/test_trainer/
+models/gregoire/
 notebooks/alex/
 notebooks/gregoire/
 notebooks/pablo/
 notebooks/quentin/
-models/gregoire/
 neuralart/legacy.py
