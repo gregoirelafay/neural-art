@@ -20,7 +20,7 @@ app = FastAPI()
 
 @app.get("/")
 def home ():
-    return {"greeting": "Hello world"}
+    return {"greeting": "Welcome to Neural Art API"}
 
 
 '''@app.post("/uploadfile/")
