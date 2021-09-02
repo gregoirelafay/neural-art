@@ -11,6 +11,7 @@ raw_data/
 VM_backup/
 models/test_trainer/
 models/gregoire/
+models/Custom/
 notebooks/alex/
 notebooks/gregoire/
 notebooks/pablo/
