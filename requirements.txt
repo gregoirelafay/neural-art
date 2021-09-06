@@ -9,6 +9,7 @@ seaborn
 # deep learning
 tensorflow
 scikit-learn
+tf-keras-vis
 
 # tests/linter
 
