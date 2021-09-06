@@ -53,7 +53,7 @@ def baselines_viz_single(img_dict,pix_count=50176,plot_save=True):
     plt.show(fig)
 
     if plot_save :
-        plt.savefig('books_read.png')
+        plt.savefig('baseline/img_temp.png')
 
 
 
