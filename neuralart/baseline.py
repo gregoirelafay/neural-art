@@ -37,7 +37,7 @@ def baselines_viz_single(img_dict,pix_count=50176,plot_save=True):
     for i in range(len(rows) - 1):
         dom_patch[rows[i]:rows[i + 1], :, :] += np.uint8(palette[indices[i]])
 
-    fig, (ax0, ax1, ax2) = plt.subplots(1, 5, figsize=(16,10))
+    fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(16,10))
     ax0.imshow(avg_patch)
     ax0.set_title('Average color')
     ax0.axis('off')
