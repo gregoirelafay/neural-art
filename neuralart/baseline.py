@@ -10,55 +10,28 @@ import os
 import neuralart.fourier as fourier
 
 
-def baselines_viz_single(img,n_colors = 5,plot=True,array=True,rgb_fft='g'):
+def baselines_viz_single(img_dict,pix_count=50176,plot_save=True):
 
     '''
-        Function to compute average color, n-dominant colors and Fourier
-        magnitude spectrum from an image
+        Function to vizualise treatment made on an image to run prediction
 
-        Warning :used for vizualisation of a limited number of images,
-        do not use for accuracy computation
 
-        img : unflattened image to be studied - np.ndarray (ex shape : 603,325,3)
-        n-colors : n-dominant colors to be displayed
-        plot : True -> display plot
-        array : True -> returns a dictionary of above computed values
-        rgb_fft : [r,g,b] -> color for FFT display
+        img_dict : dictionnary of an ndarray ; output of baseline_single function
+        pix_count : total number of pixels in img (224x224 by default : 50176)
+        plot_save : True -> save plot as png in baseline folder
+
 
     '''
 
-    #resize and flatten
-    img_224=np.array(tf.image.resize(img,[224,224]))
-    img_pixel = np.float32(img_224.reshape(-1, 3))
-
-    #average color
-    avg_color=img_pixel.mean(axis=0)
-    img_pixel.shape
-
-    #KMean for cluster identification of dominant colors
-    pixels=np.float32(img_pixel)
-
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 1000, .5)
-    flags = cv2.KMEANS_RANDOM_CENTERS
-
-    _, labels, palette = cv2.kmeans(pixels, n_colors, None, criteria, 10, flags)
-    _, counts = np.unique(labels, return_counts=True)
-    dom_color = palette[np.argmax(counts)]
-
-
-    #Magnitude Spectrum
-
-    rgb_dict={'r':0,'g':1,'b':2}
-
-    U=np.array(img_224[:,:,rgb_dict[rgb_fft]],dtype=np.float64)
-    V=np.fft.fft2(U)
-    VC = np.fft.fftshift(V)
-    P = np.power(np.abs(VC),2)
-    img_tff = fourier.matriceImageLog(P,[1,0,0])
-
+    avg_color=img_dict['avg_color']
+    palette=img_dict['dom_color']
+    weights=img_dict['dom_weights']
+    img_tff=img_dict['magnitude_spectrum']
 
     #Viz functions
     avg_patch = np.ones(shape=(224,224,3), dtype=np.uint8)*np.uint8(avg_color)
+
+    counts=pix_count*weights
 
     indices = np.argsort(counts)[::-1]
     freqs = np.cumsum(np.hstack([[0], counts[indices]/float(counts.sum())]))
@@ -68,42 +41,24 @@ def baselines_viz_single(img,n_colors = 5,plot=True,array=True,rgb_fft='g'):
     for i in range(len(rows) - 1):
         dom_patch[rows[i]:rows[i + 1], :, :] += np.uint8(palette[indices[i]])
 
-    fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(1, 5, figsize=(16,10))
-    ax0.imshow(img)
-    ax0.set_title('Original Image')
+    fig, (ax0, ax1, ax2) = plt.subplots(1, 5, figsize=(16,10))
+    ax0.imshow(avg_patch)
+    ax0.set_title('Average color')
     ax0.axis('off')
-    ax1.imshow(np.array(img_224,dtype=int))
-    ax1.set_title('Resized Image')
+    ax1.imshow(dom_patch)
+    ax1.set_title('Dominant colors')
     ax1.axis('off')
-    ax2.imshow(avg_patch)
-    ax2.set_title('Average color')
+    ax2.imshow(img_tff)
+    ax2.set_title('Magnitude Spectrum')
     ax2.axis('off')
-    ax3.imshow(dom_patch)
-    ax3.set_title('Dominant colors')
-    ax3.axis('off')
-    ax4.imshow(img_tff)
-    ax4.set_title('Magnitude Spectrum')
-    ax4.axis('off')
 
-    #output selection
+    #output
 
-    if plot :
-        plt.show(fig)
+    plt.show(fig)
 
-    weights=counts/pixels.shape[0]
-    out=None
+    if plot_save :
+        plt.savefig('books_read.png')
 
-    img_dict=None
-
-    if array:
-
-        img_dict={}
-        img_dict['avg_color']=avg_color
-        img_dict['dom_color']=palette
-        img_dict['dom_weights']=weights
-        img_dict['magnitude_spectrum']=img_tff
-
-    return img_dict
 
 
 def baselines_single(img,n_colors = 5,rgb_fft='g'):
