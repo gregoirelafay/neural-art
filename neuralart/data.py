@@ -127,26 +127,20 @@ def create_dataset(csv_file_name, target="style", merge=None, n=None, strategy='
                                            random_state=random_state,
                                            stratify=df_val_test[target])
 
-        df_train = df_train.copy()
-        df_val = df_val.copy()
-        df_test = df_test.copy()
-
-        df_train["split"] = "train"
-        df_val["split"] = "val"
-        df_test["split"] = "test"
+        df_train.insert(1, "split", ["train"]*df_train.shape[0])
+        df_val.insert(1, "split", ["val"]*df_val.shape[0])
+        df_test.insert(1, "split", ["test"]*df_test.shape[0])
 
         df = pd.concat([df_train, df_val, df_test],ignore_index=True)
 
     if not flat:
         if val_ratio and test_ratio:
-            df["image_path"] = [os.path.join(i[1]["split"], i[1][target], i[1]["image_name"])
-                                for i in df[[target, "split", "image_name"]].iterrows()]
+            df.insert(0, "image_path", [os.path.join(i[1]["split"], i[1][target], i[1]["image_name"])
+                                for i in df[[target, "split", "image_name"]].iterrows()])
         else:
-            df["image_path"] = [os.path.join(i[1][target], i[1]["image_name"])
-                                for i in df[[target, "image_name"]].iterrows()]
+            df.insert(0, "image_path", [os.path.join(i[1][target], i[1]["image_name"])
+                                for i in df[[target, "image_name"]].iterrows()])
 
-        df = df[["image_path", "image_name", "style", "genre", "artist", "title", "chan_image_path",
-                 "chan_image_name", "chan_split_style", "chan_split_genre", "chan_split_artist"]]
     # Save csv
     if csv_output_path:
         csv_name = f"wikiart-target_{target}-class_{df[target].nunique()}-keepgenre_{keep_genre}"
