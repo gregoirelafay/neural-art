@@ -1,3 +1,5 @@
+<img src="misc/cover.png" alt="cover" width="800"/>
+
 # Install
 
 Clone the project and install it:
