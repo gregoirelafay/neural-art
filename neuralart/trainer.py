@@ -96,26 +96,23 @@ class Trainer():
             data = data.sample(frac=1)
         self.image_count = data.shape[0]
         self.buffer_size = self.image_count
-        assert set(list(data["movement"].unique())) == set(self.class_names)
-        assert data["movement"].nunique() == self.num_classes
+        assert set(list(data["style"].unique())) == set(self.class_names)
+        assert data["style"].nunique() == self.num_classes
 
         self.train_ds = tf.data.Dataset.from_tensor_slices(([
-            os.path.join(self.image_folder_path,i.movement, i.file_name)
-            for i in data.loc[data["split"] == "train",
-                              ["movement", "file_name"]].itertuples()
-        ], data.loc[data["split"] == "train", "movement"]))
+            os.path.join(self.image_folder_path, i[1])
+            for i in data.loc[data["split"] == "train","image_path"].iteritems()
+        ], data.loc[data["split"] == "train", "style"]))
 
         self.val_ds = tf.data.Dataset.from_tensor_slices(([
-            os.path.join(self.image_folder_path,i.movement, i.file_name)
-            for i in data.loc[data["split"] == "val",
-                              ["movement", "file_name"]].itertuples()
-        ], data.loc[data["split"] == "val", "movement"]))
+            os.path.join(self.image_folder_path, i[1])
+            for i in data.loc[data["split"] == "val", "image_path"].iteritems()
+        ], data.loc[data["split"] == "val", "style"]))
 
         self.test_ds = tf.data.Dataset.from_tensor_slices(([
-            os.path.join(self.image_folder_path, i.movement, i.file_name)
-            for i in data.loc[data["split"] == "test",
-                              ["movement", "file_name"]].itertuples()
-        ], data.loc[data["split"] == "test", "movement"]))
+            os.path.join(self.image_folder_path, i[1])
+            for i in data.loc[data["split"] == "test", "image_path"].iteritems()
+        ], data.loc[data["split"] == "test", "style"]))
 
         self.train_ds = self.train_ds.map(
             self.process_path, num_parallel_calls=self.AUTOTUNE)
