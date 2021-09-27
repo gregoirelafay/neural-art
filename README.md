@@ -144,7 +144,7 @@ trainer.plot_confusion_matrix()
 trainer.load_model(model_path)
 ```
 
-You can use the model available in *models/20210831-135428-images_41472-unfreeze_2-batch_128*. This is a `cutom_2` model trained on our custom dataset consisting of 41472 images categorized into 8 art styles.
+You can use the model available in *models/20210831-135428-images_41472-unfreeze_2-batch_128*. This is a `custom_2` model trained on our custom dataset consisting of 41472 images categorized into 8 art styles.
 
 # Feature visualization
 
