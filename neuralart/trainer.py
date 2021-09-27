@@ -158,15 +158,15 @@ class Trainer():
         ds = ds.prefetch(buffer_size=self.AUTOTUNE)
         return ds
 
-    def build_model(self, model_name, trainable_layers=2, random_roration=0.3, random_zoom=0.3, learning_rate=0.001):
+    def build_model(self, model_name, trainable_layers=2, random_rotation=0.3, random_zoom=0.3, learning_rate=0.001):
         self.model_name = model_name
         self.trainable_layers = trainable_layers
-        self.random_rotation = random_roration
+        self.random_rotation = random_rotation
         self.random_zoom = random_zoom
         self.learning_rate=learning_rate
 
         assert self.model_name in {
-            "VGG16", "ResNet50", "custom"}, "Choose a model among the following ones: 'VGG16', 'ResNet50', 'custom_1', 'custom_2"
+            "VGG16", "ResNet50", "custom_1", "custom_2"}, "Choose a model among the following ones: 'VGG16', 'ResNet50', 'custom_1', 'custom_2"
 
         data_augmentation_layers = self.get_data_augmentation_layers()
 
