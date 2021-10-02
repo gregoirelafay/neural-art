@@ -1,5 +1,9 @@
 <img src="misc/cover.png" alt="cover" width="900"/>
 
+# Links
+
+Check out our [article on Medium](https://medium.com/@lavallee.alexx/how-to-code-a-convolutional-neural-networks-to-recognise-art-style-in-paintings-d922fe69e553) or test our best model using the [neural-art web app](http://neural-art.com/).
+
 # Setup
 ## Install the package
 
@@ -30,13 +34,13 @@ Once the downloads are complete, unzip the folders, and move them to the *raw_da
 
 # Data preparation
 
-Once you have downloaded the dataset and installed the package, follow the instructions in the *notebooks/data_preparation.ipynb* notebook to create your train/val/test splits.
+Once you have downloaded the dataset and installed the package, follow the instructions in the notebook *notebooks/data_preparation.ipynb* to generate your train/val/test splits.
 
 The paintings in the Wikiart dataset provided by Professor Chan are categorized into 27 art styles. You can choose to work with all 27 art styles, or merge/drop some styles by playing with the parameters of the `create_dataset` function in the `data` module of the neural-art package.
 
 ## Replicate our dataset
 
-On our side, we worked with only 8 distinct art styles. To replicate our dataset, follow the instructions of the section "Replicate our custom dataset of 8 art styles" in the *notebooks/data_preparation.ipynb* notebook.
+On our side, we worked with only 8 distinct art styles. To replicate our dataset, follow the instructions of the section "Replicate our custom dataset of 8 art styles" in the notebook *notebooks/data_preparation.ipynb*.
 
 <img src="misc/custom_dataset_classes.png" alt="cover" width="900"/>
 
@@ -46,9 +50,9 @@ On our side, we worked with only 8 distinct art styles. To replicate our dataset
 
 In this section, we will now describe how to use the `trainer` module to train classification models on the Wikiart dataset.
 
-- You can directly follow the instructions in the *notebooks/style_prediction_using_neuralart_package.ipynb* notebook to see examples of how to use the `trainer` module.
+- You can directly follow the instructions in the notebook *notebooks/style_prediction_using_neuralart_package.ipynb* to see examples of how to use the `trainer` module.
 
-- You can also follow the instructions in the *notebooks/style_prediction_using_notebook.ipynb* notebook to see examples of how to train models on the Wikiart dataset without using the `trainer` module.
+- You can also follow the instructions in the notebook *notebooks/style_prediction_using_notebook.ipynb* to see examples of how to train models on the Wikiart dataset without using the `trainer` module.
 
 ## Initialize the trainer
 
@@ -148,4 +152,4 @@ You can use the model available in *models/20210831-135428-images_41472-unfreeze
 
 # Feature visualization
 
-TODO
+Follow the instructions in the notebooks *notebooks/feature_visualization_conv_filters.ipynb* and *notebooks/feature_visualization_dense_layer.ipynb*.
